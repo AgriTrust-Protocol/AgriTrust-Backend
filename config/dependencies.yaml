@@ -1,0 +1,31 @@
+api-gateway:
+  - identity-service
+  - inventory-service
+  - sensor-ingestion
+
+identity-service:
+  - database
+
+inventory-service:
+  - database
+  - silo-lock-service
+
+sensor-ingestion:
+  - message-queue
+  - database
+
+silo-lock-service:
+  - database
+  - blockchain-bridge
+
+blockchain-bridge:
+  - stellar-rpc
+
+database:
+  - []
+
+message-queue:
+  - []
+
+stellar-rpc:
+  - []

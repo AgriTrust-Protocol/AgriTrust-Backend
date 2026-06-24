@@ -51,6 +51,14 @@ app.get('/health/ledger-consistency', async (req, res) => {
   }
 });
 
+app.use('/health', (() => {
+  try {
+    return require('./src/health/routes').createHealthRouter();
+  } catch {
+    return require('./dist/src/health/routes').createHealthRouter();
+  }
+})());
+
 /**
  * GET /metrics
  *
