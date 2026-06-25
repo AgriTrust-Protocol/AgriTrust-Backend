@@ -6,6 +6,14 @@ const isMtlsEnabled = process.env.MTLS_ENABLED === 'true';
 
 app.use(express.json());
 
+// ─── Canary Deployment Framework Architecture Components ──────────────────────
+const { experimentMiddleware } = require('./src/middleware/experiment');
+const { AdminExperimentRouter } = require('./src/experimentation/canary-router-api');
+const { CanaryController } = require('./src/experimentation/canary-controller');
+
+// Start the statistical background evaluation daemon loop
+CanaryController.startDaemon();
+
 // ─── OpenAPI request/response validation middleware ───────────────────────────
 let openApiMiddleware;
 try {
@@ -24,6 +32,10 @@ try {
   metricsMiddleware = require('./dist/src/api/metrics/middleware').metricsMiddleware;
 }
 app.use(metricsMiddleware);
+
+// ─── Mount Canary Middleware & Admin Routing Elements ─────────────────────────
+app.use(AdminExperimentRouter); // Registers /admin/experiments routes
+app.use(experimentMiddleware);  // Intercepts and flags incoming traffic properties
 
 app.get('/', (req, res) => {
   res.json({ 
