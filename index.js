@@ -220,6 +220,28 @@ try {
   }
 }
 
+
+// ─── Reliable Webhook Delivery System (Issue #54) ──────────────────────────
+try {
+  const { MemoryRedis } = require('./dist/src/webhooks/memory-redis');
+  const { DeliveryQueue } = require('./dist/src/webhooks/delivery-queue');
+  const { IdempotencyStore } = require('./dist/src/webhooks/idempotency-store');
+  const { DeadLetterQueue } = require('./dist/src/webhooks/dead-letter-queue');
+  const { SubscriptionManager } = require('./dist/src/webhooks/subscription-manager');
+  const { WebhookDispatcher } = require('./dist/src/webhooks/dispatcher');
+  const { createAdminWebhooksRouter } = require('./dist/src/api/routes/adminWebhooksRoutes');
+  const redis = new MemoryRedis();
+  const deliveryQueue = new DeliveryQueue(redis);
+  const idempotencyStore = new IdempotencyStore(redis);
+  const deadLetterQueue = new DeadLetterQueue(redis);
+  const subscriptionManager = new SubscriptionManager(redis);
+  const webhookDispatcher = new WebhookDispatcher(deliveryQueue, idempotencyStore, deadLetterQueue);
+  app.use('/admin', createAdminWebhooksRouter(deliveryQueue, deadLetterQueue, subscriptionManager, webhookDispatcher));
+  if (process.env.NODE_ENV !== 'test') webhookDispatcher.start();
+} catch (err) {
+  console.warn('Webhook delivery modules not found or failed to load. Skipping init.');
+}
+
 // ─── Job Queue — Weighted Fair Queue Scheduler (Issue #44) ──────────────────
 // Background job priority scheduler with deficit round-robin and per-type
 // concurrency budgets. Backed by Redis sorted sets. See issue #44.

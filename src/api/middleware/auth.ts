@@ -33,7 +33,7 @@ export const authMiddleware: RequestHandler = (req, _res, next) => {
     }
 
     if (tenantId) {
-      req.tenantContext = { tenantId: String(tenantId), tier };
+      (req as typeof req & { tenantContext?: { tenantId: string; tier: 1 | 2 | 3 } }).tenantContext = { tenantId: String(tenantId), tier };
     }
   } catch (e) {
     // ignore malformed tokens
