@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { openApiConfig } from '../../src/config/openapi';
+import { versionResolver } from '../../src/middleware/version-resolver';
 import { openApiValidationMiddleware } from '../../src/middleware/openapi-validator';
 import { getMergedOpenApiDocument } from '../../src/openapi/spec-loader';
 
@@ -14,6 +15,7 @@ describe('OpenAPI contract validation middleware', () => {
     const app = express();
     app.use(express.json());
     openApiConfig.mode = mode;
+    app.use(versionResolver);
     app.use(openApiValidationMiddleware);
 
     app.post('/api/v1/batches/:id/certify', (req, res) => {
@@ -24,8 +26,8 @@ describe('OpenAPI contract validation middleware', () => {
       return res.status(200).json({ message: 'Certificate minted successfully', certificate_id: 'cert-123' });
     });
 
-    app.get('/openapi.json', async (_req, res) => {
-      const doc = await getMergedOpenApiDocument();
+    app.get('/openapi.json', async (req, res) => {
+      const doc = await getMergedOpenApiDocument(req.apiVersion);
       return res.status(200).json(doc);
     });
 
@@ -37,6 +39,7 @@ describe('OpenAPI contract validation middleware', () => {
 
     const response = await request(app)
       .post('/api/v1/batches/abc123/certify')
+      .set('X-API-Version', 'v1')
       .send({ metadata: { source: 123 } })
       .expect(400);
 
@@ -55,6 +58,7 @@ describe('OpenAPI contract validation middleware', () => {
 
     const response = await request(app)
       .post('/api/v1/batches/abc123/certify')
+      .set('X-API-Version', 'v1')
       .send({ metadata: { source: 'BadSource' } })
       .expect(200);
 
@@ -67,6 +71,7 @@ describe('OpenAPI contract validation middleware', () => {
 
     const response = await request(app)
       .post('/api/v1/batches/abc123/certify')
+      .set('X-API-Version', 'v1')
       .send({ metadata: { source: 123 } })
       .expect(200);
 
@@ -80,6 +85,7 @@ describe('OpenAPI contract validation middleware', () => {
 
     const response = await request(app)
       .post('/api/v1/batches/abc123/certify')
+      .set('X-API-Version', 'v1')
       .send({ invalidResponse: true })
       .expect(500);
 
@@ -95,7 +101,7 @@ describe('OpenAPI contract validation middleware', () => {
 
   it('serves the merged OpenAPI spec at /openapi.json', async () => {
     const app = buildApp('strict');
-    const response = await request(app).get('/openapi.json').expect(200);
+    const response = await request(app).get('/openapi.json').set('X-API-Version', 'v1').expect(200);
     expect(response.body).toHaveProperty('openapi', '3.1.0');
     expect(response.body.paths).toHaveProperty('/api/v1/batches/{id}/certify');
   });

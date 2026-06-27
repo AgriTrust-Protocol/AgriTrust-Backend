@@ -6,6 +6,15 @@ const isMtlsEnabled = process.env.MTLS_ENABLED === 'true';
 
 app.use(express.json());
 
+// ─── Versioning Middleware ──────────────────────────────────────────────────
+let versionResolver;
+try {
+  versionResolver = require('./src/middleware/version-resolver').versionResolver;
+} catch {
+  versionResolver = require('./dist/src/middleware/version-resolver').versionResolver;
+}
+app.use(versionResolver);
+
 // ─── OpenAPI request/response validation middleware ───────────────────────────
 let openApiMiddleware;
 try {
@@ -14,6 +23,15 @@ try {
   openApiMiddleware = require('./dist/src/middleware/openapi-validator').openApiValidationMiddleware;
 }
 app.use(openApiMiddleware);
+
+// ─── Version Transformation Middleware ───────────────────────────────────────
+let versionTransformer;
+try {
+  versionTransformer = require('./src/middleware/version-transformer').versionTransformer;
+} catch {
+  versionTransformer = require('./dist/src/middleware/version-transformer').versionTransformer;
+}
+app.use(versionTransformer);
 
 // ─── HTTP Metrics Middleware ─────────────────────────────────────────────────
 // Tracks request duration, response size, and status code per route.
@@ -123,7 +141,19 @@ app.get('/metrics/runtime', async (_req, res) => {
   }
 });
 
-app.get('/openapi.json', async (_req, res) => {
+app.get('/api/versions', (req, res) => {
+  let versionRegistry;
+  try {
+    versionRegistry = require('./src/config/api-versions').versionRegistry;
+  } catch {
+    versionRegistry = require('./dist/src/config/api-versions').versionRegistry;
+  }
+  res.json({
+    versions: versionRegistry.getAllVersions()
+  });
+});
+
+app.get('/openapi.json', async (req, res) => {
   try {
     let loader;
     try {
@@ -132,7 +162,7 @@ app.get('/openapi.json', async (_req, res) => {
       loader = require('./dist/src/openapi/spec-loader');
     }
 
-    const spec = await loader.getMergedOpenApiDocument();
+    const spec = await loader.getMergedOpenApiDocument(req.apiVersion || 'v2');
     res.status(200).json(spec);
   } catch (err) {
     console.error('Failed to serve OpenAPI spec:', err);
