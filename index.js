@@ -251,7 +251,15 @@ try {
   const { WorkerPool } = require('./dist/src/job-queue/worker-pool');
   const { Scheduler } = require('./dist/src/job-queue/scheduler');
   const { createAdminJobsRouter } = require('./dist/src/api/routes/adminJobsRoutes');
+  const { createAdminKeysRouter } = require('./dist/src/api/routes/adminKeysRoutes');
+  const { PgKeyStore } = require('./dist/src/crypto/key-store');
+  const { KeyRotationOrchestrator } = require('./dist/src/crypto/key-rotation-orchestrator');
+  const { Pool } = require('pg');
   const { DEFAULT_JOB_CONFIGS } = require('./dist/src/config/jobs');
+
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const keyStore = new PgKeyStore(pool);
+  const orchestrator = new KeyRotationOrchestrator(keyStore, pool);
 
   const registry = new JobRegistry();
   const persistence = new JobQueuePersistence(process.env.REDIS_URL || 'redis://localhost:6379');
@@ -260,18 +268,41 @@ try {
 
   // Register job type handlers (dummy handlers — real ones wired by the service layer).
   for (const type of Object.keys(DEFAULT_JOB_CONFIGS)) {
-    registry.register(type, async (payload) => {
-      console.log(`[JobQueue] Handling ${type}:`, JSON.stringify(payload).slice(0, 200));
-    });
+    if (type === 'key_retirement') {
+      registry.register(type, async () => {
+        const count = await keyStore.retireExpiredKeys();
+        if (count > 0) {
+          console.log(`[JobQueue] Retired ${count} expired keys`);
+        }
+      });
+    } else {
+      registry.register(type, async (payload) => {
+        console.log(`[JobQueue] Handling ${type}:`, JSON.stringify(payload).slice(0, 200));
+      });
+    }
   }
 
-  // Mount admin API under /admin/jobs
+  // Mount admin API
   app.use('/admin', createAdminJobsRouter(scheduler, persistence, workerPool));
+  app.use('/admin/keys', createAdminKeysRouter(orchestrator, keyStore));
 
   // Start the scheduler tick loop in production.
   if (process.env.NODE_ENV !== 'test') {
+    orchestrator.start();
     persistence.connect()
-      .then(() => { scheduler.start(); })
+      .then(() => {
+        scheduler.start();
+        // Schedule the key retirement job to run every hour.
+        setInterval(() => {
+          persistence.enqueue({
+            id: `key-retirement-${Date.now()}`,
+            type: 'key_retirement',
+            payload: {},
+            priority: 1, // Low
+            submittedAt: Date.now(),
+          }).catch(err => console.error('Failed to enqueue key_retirement job:', err));
+        }, 60 * 60 * 1000);
+      })
       .catch((err) => console.warn('Redis unavailable — job queue disabled:', err.message));
     console.log('Job queue scheduler started.');
   }
