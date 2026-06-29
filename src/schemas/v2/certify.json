@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "properties": {
+    "context": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "pattern": "^[a-z_]+$"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

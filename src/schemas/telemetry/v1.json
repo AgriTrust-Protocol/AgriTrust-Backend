@@ -1,0 +1,16 @@
+{
+  "$id": "telemetry/v1",
+  "type": "object",
+  "required": ["schema_version", "device_id", "ts", "temp_c"],
+  "properties": {
+    "schema_version": { "const": "v1" },
+    "device_id": { "type": "string" },
+    "ts": { "type": ["string", "number"] },
+    "temp_c": { "type": "number" },
+    "hum_pct": { "type": "number" },
+    "shock_g": { "type": "number" },
+    "lat": { "type": "number" },
+    "lon": { "type": "number" }
+  },
+  "additionalProperties": true
+}

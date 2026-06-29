@@ -4,4 +4,69 @@ info:
   version: 2.0.0
 servers:
   - url: /
-paths: {}
+paths:
+  /api/v1/batches/{id}/certify:
+    x-router-path: /api/v1/batches/:id/certify
+    post:
+      summary: Certify a batch and mint a certificate (v2)
+      operationId: certifyBatch
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                context:
+                  type: object
+                  properties:
+                    source:
+                      type: string
+                      pattern: '^[a-z_]+$'
+                  additionalProperties: false
+      responses:
+        '200':
+          description: Certificate minted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  certificate_id:
+                    type: string
+                required:
+                  - message
+                  - certificate_id
+                additionalProperties: false
+        '409':
+          description: Minting failed or already in progress
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+                additionalProperties: false
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+                additionalProperties: false

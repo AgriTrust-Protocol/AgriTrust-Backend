@@ -15,7 +15,8 @@ export interface OperationValidators {
 const ajv = new Ajv({ allErrors: true, strict: false, allowUnionTypes: true, verbose: false });
 addFormats(ajv);
 const schemaCache = new LRUCache<string, ValidateFunction>(10000);
-let mergedOpenApiDocument: OpenAPIV3.Document | null = null;
+const mergedDocuments = new Map<string, OpenAPIV3.Document>();
+const versionedRouteEntries = new Map<string, RouteEntry[]>();
 let initialized = false;
 
 async function loadOpenApiDocument(specPath: string): Promise<OpenAPIV3.Document> {
@@ -222,50 +223,56 @@ async function initializeOpenApi(): Promise<void> {
     return;
   }
 
-  const documents = await Promise.all(openApiConfig.specPaths.map(loadOpenApiDocument));
-  mergedOpenApiDocument = mergeOpenApiDocuments(documents);
+  for (const specPath of openApiConfig.specPaths) {
+    const doc = await loadOpenApiDocument(specPath);
+    const versionMatch = specPath.match(/(v\d+)\.yaml$/);
+    const version = versionMatch ? versionMatch[1] : 'v2';
 
-  const paths = mergedOpenApiDocument.paths ?? {};
+    mergedDocuments.set(version, doc);
 
-  const supportedMethods = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'];
+    const paths = doc.paths ?? {};
+    const supportedMethods = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'];
+    const entries: RouteEntry[] = [];
 
-  for (const [openApiPath, pathItem] of Object.entries(paths)) {
-    if (!pathItem) {
-      continue;
-    }
-
-    const normalizedPath = normalizeRouterPath(openApiPath);
-    const pathParameters = pathItem.parameters as OpenAPIV3.ParameterObject[] ?? [];
-
-    for (const method of supportedMethods) {
-      const operation = (pathItem as any)[method] as OpenAPIV3.OperationObject | undefined;
-      if (!operation) {
+    for (const [openApiPath, pathItem] of Object.entries(paths)) {
+      if (!pathItem) {
         continue;
       }
 
-      const customRouterPath = (operation as any)['x-router-path'] ?? (pathItem as any)['x-router-path'];
-      const routerPath = typeof customRouterPath === 'string' ? customRouterPath : normalizedPath;
-      const requestValidator = buildRequestValidator(operation, pathParameters);
-      const responseValidators = buildResponseValidators(operation);
+      const normalizedPath = normalizeRouterPath(openApiPath);
+      const pathParameters = pathItem.parameters as OpenAPIV3.ParameterObject[] ?? [];
 
-      routeEntries.push({
-        method: method.toUpperCase(),
-        pattern: routerPath,
-        regex: routePatternToRegex(routerPath),
-        validators: { requestValidator, responseValidators },
-      });
+      for (const method of supportedMethods) {
+        const operation = (pathItem as any)[method] as OpenAPIV3.OperationObject | undefined;
+        if (!operation) {
+          continue;
+        }
+
+        const customRouterPath = (operation as any)['x-router-path'] ?? (pathItem as any)['x-router-path'];
+        const routerPath = typeof customRouterPath === 'string' ? customRouterPath : normalizedPath;
+        const requestValidator = buildRequestValidator(operation, pathParameters);
+        const responseValidators = buildResponseValidators(operation);
+
+        entries.push({
+          method: method.toUpperCase(),
+          pattern: routerPath,
+          regex: routePatternToRegex(routerPath),
+          validators: { requestValidator, responseValidators },
+        });
+      }
     }
+    versionedRouteEntries.set(version, entries);
   }
 
   initialized = true;
 }
 
-export async function getMergedOpenApiDocument(): Promise<OpenAPIV3.Document> {
+export async function getMergedOpenApiDocument(version: string = 'v2'): Promise<OpenAPIV3.Document> {
   if (!initialized) {
     await initializeOpenApi();
   }
 
-  return mergedOpenApiDocument as OpenAPIV3.Document;
+  return (mergedDocuments.get(version) || mergedDocuments.get('v2')) as OpenAPIV3.Document;
 }
 
 export async function getOperationValidators(req: Request): Promise<MatchedValidators | undefined> {
@@ -273,5 +280,15 @@ export async function getOperationValidators(req: Request): Promise<MatchedValid
     await initializeOpenApi();
   }
 
-  return findValidatorsForRequest(req);
+  const version = req.apiVersion || 'v2';
+  const entries = versionedRouteEntries.get(version) || versionedRouteEntries.get('v2') || [];
+
+  const method = req.method.toUpperCase();
+  const fullPath = (req.baseUrl ?? '') + req.path;
+  for (const entry of entries) {
+    if (entry.method === method && entry.regex.test(fullPath)) {
+      return { ...entry.validators, routePattern: entry.pattern };
+    }
+  }
+  return undefined;
 }

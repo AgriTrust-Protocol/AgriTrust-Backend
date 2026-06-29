@@ -6,13 +6,14 @@ const isMtlsEnabled = process.env.MTLS_ENABLED === 'true';
 
 app.use(express.json());
 
-// ─── Canary Deployment Framework Architecture Components ──────────────────────
-const { experimentMiddleware } = require('./src/middleware/experiment');
-const { AdminExperimentRouter } = require('./src/experimentation/canary-router-api');
-const { CanaryController } = require('./src/experimentation/canary-controller');
-
-// Start the statistical background evaluation daemon loop
-CanaryController.startDaemon();
+// ─── Versioning Middleware ──────────────────────────────────────────────────
+let versionResolver;
+try {
+  versionResolver = require('./src/middleware/version-resolver').versionResolver;
+} catch {
+  versionResolver = require('./dist/src/middleware/version-resolver').versionResolver;
+}
+app.use(versionResolver);
 
 // ─── OpenAPI request/response validation middleware ───────────────────────────
 let openApiMiddleware;
@@ -22,6 +23,15 @@ try {
   openApiMiddleware = require('./dist/src/middleware/openapi-validator').openApiValidationMiddleware;
 }
 app.use(openApiMiddleware);
+
+// ─── Version Transformation Middleware ───────────────────────────────────────
+let versionTransformer;
+try {
+  versionTransformer = require('./src/middleware/version-transformer').versionTransformer;
+} catch {
+  versionTransformer = require('./dist/src/middleware/version-transformer').versionTransformer;
+}
+app.use(versionTransformer);
 
 // ─── HTTP Metrics Middleware ─────────────────────────────────────────────────
 // Tracks request duration, response size, and status code per route.
@@ -135,7 +145,19 @@ app.get('/metrics/runtime', async (_req, res) => {
   }
 });
 
-app.get('/openapi.json', async (_req, res) => {
+app.get('/api/versions', (req, res) => {
+  let versionRegistry;
+  try {
+    versionRegistry = require('./src/config/api-versions').versionRegistry;
+  } catch {
+    versionRegistry = require('./dist/src/config/api-versions').versionRegistry;
+  }
+  res.json({
+    versions: versionRegistry.getAllVersions()
+  });
+});
+
+app.get('/openapi.json', async (req, res) => {
   try {
     let loader;
     try {
@@ -144,7 +166,7 @@ app.get('/openapi.json', async (_req, res) => {
       loader = require('./dist/src/openapi/spec-loader');
     }
 
-    const spec = await loader.getMergedOpenApiDocument();
+    const spec = await loader.getMergedOpenApiDocument(req.apiVersion || 'v2');
     res.status(200).json(spec);
   } catch (err) {
     console.error('Failed to serve OpenAPI spec:', err);
@@ -232,6 +254,28 @@ try {
   }
 }
 
+
+// ─── Reliable Webhook Delivery System (Issue #54) ──────────────────────────
+try {
+  const { MemoryRedis } = require('./dist/src/webhooks/memory-redis');
+  const { DeliveryQueue } = require('./dist/src/webhooks/delivery-queue');
+  const { IdempotencyStore } = require('./dist/src/webhooks/idempotency-store');
+  const { DeadLetterQueue } = require('./dist/src/webhooks/dead-letter-queue');
+  const { SubscriptionManager } = require('./dist/src/webhooks/subscription-manager');
+  const { WebhookDispatcher } = require('./dist/src/webhooks/dispatcher');
+  const { createAdminWebhooksRouter } = require('./dist/src/api/routes/adminWebhooksRoutes');
+  const redis = new MemoryRedis();
+  const deliveryQueue = new DeliveryQueue(redis);
+  const idempotencyStore = new IdempotencyStore(redis);
+  const deadLetterQueue = new DeadLetterQueue(redis);
+  const subscriptionManager = new SubscriptionManager(redis);
+  const webhookDispatcher = new WebhookDispatcher(deliveryQueue, idempotencyStore, deadLetterQueue);
+  app.use('/admin', createAdminWebhooksRouter(deliveryQueue, deadLetterQueue, subscriptionManager, webhookDispatcher));
+  if (process.env.NODE_ENV !== 'test') webhookDispatcher.start();
+} catch (err) {
+  console.warn('Webhook delivery modules not found or failed to load. Skipping init.');
+}
+
 // ─── Job Queue — Weighted Fair Queue Scheduler (Issue #44) ──────────────────
 // Background job priority scheduler with deficit round-robin and per-type
 // concurrency budgets. Backed by Redis sorted sets. See issue #44.
@@ -241,7 +285,15 @@ try {
   const { WorkerPool } = require('./dist/src/job-queue/worker-pool');
   const { Scheduler } = require('./dist/src/job-queue/scheduler');
   const { createAdminJobsRouter } = require('./dist/src/api/routes/adminJobsRoutes');
+  const { createAdminKeysRouter } = require('./dist/src/api/routes/adminKeysRoutes');
+  const { PgKeyStore } = require('./dist/src/crypto/key-store');
+  const { KeyRotationOrchestrator } = require('./dist/src/crypto/key-rotation-orchestrator');
+  const { Pool } = require('pg');
   const { DEFAULT_JOB_CONFIGS } = require('./dist/src/config/jobs');
+
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const keyStore = new PgKeyStore(pool);
+  const orchestrator = new KeyRotationOrchestrator(keyStore, pool);
 
   const registry = new JobRegistry();
   const persistence = new JobQueuePersistence(process.env.REDIS_URL || 'redis://localhost:6379');
@@ -250,18 +302,41 @@ try {
 
   // Register job type handlers (dummy handlers — real ones wired by the service layer).
   for (const type of Object.keys(DEFAULT_JOB_CONFIGS)) {
-    registry.register(type, async (payload) => {
-      console.log(`[JobQueue] Handling ${type}:`, JSON.stringify(payload).slice(0, 200));
-    });
+    if (type === 'key_retirement') {
+      registry.register(type, async () => {
+        const count = await keyStore.retireExpiredKeys();
+        if (count > 0) {
+          console.log(`[JobQueue] Retired ${count} expired keys`);
+        }
+      });
+    } else {
+      registry.register(type, async (payload) => {
+        console.log(`[JobQueue] Handling ${type}:`, JSON.stringify(payload).slice(0, 200));
+      });
+    }
   }
 
-  // Mount admin API under /admin/jobs
+  // Mount admin API
   app.use('/admin', createAdminJobsRouter(scheduler, persistence, workerPool));
+  app.use('/admin/keys', createAdminKeysRouter(orchestrator, keyStore));
 
   // Start the scheduler tick loop in production.
   if (process.env.NODE_ENV !== 'test') {
+    orchestrator.start();
     persistence.connect()
-      .then(() => { scheduler.start(); })
+      .then(() => {
+        scheduler.start();
+        // Schedule the key retirement job to run every hour.
+        setInterval(() => {
+          persistence.enqueue({
+            id: `key-retirement-${Date.now()}`,
+            type: 'key_retirement',
+            payload: {},
+            priority: 1, // Low
+            submittedAt: Date.now(),
+          }).catch(err => console.error('Failed to enqueue key_retirement job:', err));
+        }, 60 * 60 * 1000);
+      })
       .catch((err) => console.warn('Redis unavailable — job queue disabled:', err.message));
     console.log('Job queue scheduler started.');
   }

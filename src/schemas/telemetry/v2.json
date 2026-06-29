@@ -1,0 +1,21 @@
+{
+  "$id": "telemetry/v2",
+  "type": "object",
+  "required": ["schema_version", "deviceId", "timestamp", "temperature"],
+  "properties": {
+    "schema_version": { "const": "v2" },
+    "deviceId": { "type": "string" },
+    "timestamp": { "type": "string" },
+    "temperature": { "type": "number" },
+    "humidity": { "type": "number" },
+    "shock": { "type": "number" },
+    "gps": {
+      "type": "object",
+      "required": ["lat", "lon"],
+      "properties": { "lat": { "type": "number" }, "lon": { "type": "number" } },
+      "additionalProperties": true
+    },
+    "metadata": { "type": "object" }
+  },
+  "additionalProperties": true
+}

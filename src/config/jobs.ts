@@ -66,4 +66,13 @@ export const DEFAULT_JOB_CONFIGS: Record<string, JobTypeConfig> = {
       retryLimit: 2,
     },
   },
+  key_retirement: {
+    priority: Priority.Low,
+    maxConcurrency: 1,
+    resourceBudget: {
+      maxConcurrency: 1,
+      timeoutMs: 60_000,
+      retryLimit: 3,
+    },
+  },
 };
