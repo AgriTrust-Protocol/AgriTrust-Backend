@@ -187,6 +187,29 @@ app.get('/debug/metrics/check', async (_req, res) => {
   await debugCheck.debugMetricsCheckHandler(_req, res);
 });
 
+
+// ─── Geospatial Parcel Query Service (Issue #93) ────────────────────────────
+try {
+  const { Pool } = require('pg');
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  let parcelModules;
+  try {
+    parcelModules = {
+      ...require('./dist/src/parcels/parcelService'),
+      ...require('./dist/src/parcels/routes'),
+    };
+  } catch {
+    parcelModules = {
+      ...require('./src/parcels/parcelService'),
+      ...require('./src/parcels/routes'),
+    };
+  }
+  const parcelService = new parcelModules.ParcelService(pool);
+  app.use('/api/v1/parcels', parcelModules.createParcelRouter(parcelService));
+} catch (err) {
+  console.warn('Parcel geospatial modules not found or failed to load. Skipping init.');
+}
+
 // ─── Certificate Minting Service & Routes ───────────────────────────────────
 try {
   const { Pool } = require('pg');
