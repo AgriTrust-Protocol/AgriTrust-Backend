@@ -1,0 +1,34 @@
+{
+  "title": "AgriTrust Service Mesh mTLS",
+  "schemaVersion": 39,
+  "panels": [
+    {
+      "title": "mTLS Requests",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(istio_requests_total{destination_service_name=\"agritrust-backend\",connection_security_policy=\"mutual_tls\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "title": "Critical Path P99 Latency (ms)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(istio_request_duration_milliseconds_bucket{destination_service_name=\"agritrust-backend\"}[5m])) by (le))"
+        }
+      ],
+      "fieldConfig": { "defaults": { "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 100 }] } } }
+    },
+    {
+      "title": "5xx Error Rate",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(istio_requests_total{destination_service_name=\"agritrust-backend\",response_code=~\"5..\"}[5m])) / sum(rate(istio_requests_total{destination_service_name=\"agritrust-backend\"}[5m]))"
+        }
+      ]
+    }
+  ]
+}
