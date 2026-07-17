@@ -59,3 +59,41 @@ jobs:
         run: npx ts-node tests/integration/environmental_logs_integration_test.ts
         env:
           TIMESCALE_SKIP_SETUP: "1"
+
+  performance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "22"
+      - run: npm ci
+      - name: Start API server
+        run: |
+          npm start &
+          echo $! > server.pid
+          for i in {1..30}; do
+            curl -fsS http://localhost:3000/ && exit 0
+            sleep 1
+          done
+          exit 1
+        env:
+          NODE_ENV: test
+          NODE_OPTIONS: -r ts-node/register
+      - name: Run CI load test
+        run: node tests/load/load-test.js --ci
+        env:
+          PERFORMANCE_REPORT_PATH: artifacts/performance-report.json
+      - name: Enforce performance budget
+        run: npm run performance:check -- artifacts/performance-report.json
+      - name: Upload performance report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-report
+          path: artifacts/performance-report.json
+      - name: Stop API server
+        if: always()
+        run: |
+          if [ -f server.pid ]; then kill $(cat server.pid) || true; fi
