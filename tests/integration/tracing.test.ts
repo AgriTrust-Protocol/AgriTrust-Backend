@@ -5,6 +5,7 @@ import { tracingMiddleware } from '../../src/middleware/tracing';
 import { TraceContext } from '../../src/tracing/trace-context';
 import { BaggageManager } from '../../src/tracing/baggage-manager';
 import { tracedFetch } from '../../src/tracing/fetch-wrapper';
+import { metricsRegistry } from '../../src/api/metrics/registry';
 
 // Mock global fetch
 global.fetch = vi.fn();
@@ -85,6 +86,23 @@ describe('Distributed Tracing Integration', () => {
     });
 
     await request(app).get('/new-trace').expect(200);
+  });
+
+
+  it('should publish trace propagation and span duration metrics', async () => {
+    app.get('/metrics-test', async (req, res) => {
+      res.status(204).send();
+    });
+
+    await request(app)
+      .get('/metrics-test')
+      .set('traceparent', `00-${TraceContext.generateTraceId()}-${TraceContext.generateSpanId()}-01`)
+      .expect(204);
+
+    const metrics = await metricsRegistry.metrics();
+    expect(metrics).toContain('trace_context_propagation_total');
+    expect(metrics).toContain('trace_span_duration_seconds_bucket');
+    expect(metrics).toContain('direction="incoming",result="accepted"');
   });
 
   it('should enforce baggage limits', () => {
