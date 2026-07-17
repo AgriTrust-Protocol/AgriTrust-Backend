@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { randomBytes, randomUUID } from 'crypto';
 import { WebhookSubscription } from './types';
 
 const SUBS_KEY = 'webhooks:subscriptions';
@@ -11,8 +11,8 @@ function globToRegex(glob: string): RegExp {
 
 export class SubscriptionManager {
   constructor(private readonly redis: SubscriptionRedis) {}
-  async register(input: { tenantId: string; url: string; eventTypes?: string[] }): Promise<WebhookSubscription> {
-    const sub: WebhookSubscription = { id: randomUUID(), tenantId: input.tenantId, url: input.url, eventTypes: input.eventTypes?.length ? input.eventTypes : ['*'], createdAt: Date.now() };
+  async register(input: { tenantId: string; url: string; eventTypes?: string[]; secret?: string }): Promise<WebhookSubscription> {
+    const sub: WebhookSubscription = { id: randomUUID(), tenantId: input.tenantId, url: input.url, eventTypes: input.eventTypes?.length ? input.eventTypes : ['*'], secret: input.secret ?? `whsec_${randomBytes(32).toString('hex')}`, createdAt: Date.now() };
     await this.redis.hset(SUBS_KEY, sub.id, JSON.stringify(sub));
     return sub;
   }

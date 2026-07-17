@@ -5,6 +5,7 @@ export interface WebhookDelivery {
   url: string;
   eventType: string;
   payload: unknown;
+  secret?: string;
   idempotencyKey: string;
   attempt: number;
   createdAt: number;
@@ -29,5 +30,6 @@ export interface WebhookSubscription {
   tenantId: string;
   url: string;
   eventTypes: string[];
+  secret: string;
   createdAt: number;
 }

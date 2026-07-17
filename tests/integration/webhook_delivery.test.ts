@@ -6,6 +6,7 @@ import { DeliveryQueue } from '../../src/webhooks/delivery-queue';
 import { WebhookDispatcher } from '../../src/webhooks/dispatcher';
 import { IdempotencyStore } from '../../src/webhooks/idempotency-store';
 import { MemoryRedis } from '../../src/webhooks/memory-redis';
+import { verifyWebhookSignature } from '../../src/webhooks/signature';
 
 async function mockServer(statuses: number[]): Promise<{ url: string; close: () => Promise<void>; count: () => number; headers: () => Record<string, string | string[] | undefined> }> {
   let attempts = 0;
@@ -30,6 +31,20 @@ describe('WebhookDispatcher', () => {
     expect(server.count()).toBe(2);
     expect(server.headers()['x-idempotency-key']).toBe(delivery.idempotencyKey);
     expect(server.headers()['x-webhook-id']).toBe(delivery.id);
+    await server.close();
+  });
+
+
+  it('signs deliveries so receivers can verify authenticity and freshness', async () => {
+    const secret = 'whsec_test';
+    const server = await mockServer([200]);
+    const redis = new MemoryRedis();
+    const dispatcher = new WebhookDispatcher(new DeliveryQueue(redis), new IdempotencyStore(redis), new DeadLetterQueue(redis), { ...DEFAULT_WEBHOOK_CONFIG, requestTimeoutMs: 250 });
+    await dispatcher.dispatch({ tenantId: 'tenant-a', url: server.url, eventType: 'batch.signed', payload: { batchId: 'b-1' }, secret });
+    await dispatcher.tick();
+    await new Promise((r) => setTimeout(r, 100));
+    const headers = server.headers();
+    expect(verifyWebhookSignature({ secret, body: JSON.stringify({ batchId: 'b-1' }), timestamp: Number(headers['x-agritrust-timestamp']), signatureHeader: String(headers['x-agritrust-signature']) })).toBe(true);
     await server.close();
   });
 
