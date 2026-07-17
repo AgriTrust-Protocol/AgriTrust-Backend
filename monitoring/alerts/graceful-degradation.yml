@@ -1,0 +1,17 @@
+groups:
+  - name: graceful-degradation
+    rules:
+      - alert: HighCapacityPressure
+        expr: resilience_capacity_score > 0.9
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: Capacity pressure is above the important traffic shedding threshold
+      - alert: UnexpectedCapacityShedding
+        expr: increase(resilience_shed_requests_total[5m]) > 50
+        for: 10m
+        labels:
+          severity: ticket
+        annotations:
+          summary: Requests are being shed by the graceful degradation layer

@@ -3,9 +3,19 @@ import { existsSync } from 'fs';
 import { resolve } from 'path';
 import { HealthAggregator } from './aggregator';
 import { InMemoryDependencyGraph } from './dependency_graph';
+import { capacityShedder } from '../resilience/capacity-shedder';
+import { featureFlags } from '../resilience/feature-flags';
 
 export function createHealthRouter(aggregator = createDefaultHealthAggregator()): Router {
   const router = Router();
+
+  router.get('/resilience', (_req, res) => {
+    res.status(200).json({
+      timestamp: Date.now(),
+      capacity: capacityShedder.currentSignal(),
+      featureFlags: featureFlags.snapshot(),
+    });
+  });
 
   router.get('/', async (_req, res) => {
     try {
