@@ -81,6 +81,7 @@ jobs:
         env:
           NODE_ENV: test
           NODE_OPTIONS: -r ts-node/register
+          TS_NODE_TRANSPILE_ONLY: "true"
       - name: Run CI load test
         run: node tests/load/load-test.js --ci
         env:
