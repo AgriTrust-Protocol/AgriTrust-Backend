@@ -187,6 +187,18 @@ app.get('/debug/metrics/check', async (_req, res) => {
   await debugCheck.debugMetricsCheckHandler(_req, res);
 });
 
+
+// ─── Farm Activity Audit Trail (Issue #92) ─────────────────────────────────
+{
+  const { Pool } = require('pg');
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const { FarmActivityAuditService } = require('./dist/src/audit/farmActivityAudit');
+  const { createAuditRouter } = require('./dist/src/api/routes/auditRoutes');
+
+  const auditService = new FarmActivityAuditService(pool);
+  app.use('/api/v1/audit', createAuditRouter(auditService));
+}
+
 // ─── Certificate Minting Service & Routes ───────────────────────────────────
 try {
   const { Pool } = require('pg');
