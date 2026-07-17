@@ -1,0 +1,17 @@
+groups:
+  - name: agritrust-tracing
+    rules:
+      - alert: TraceContextRejectedSpike
+        expr: sum(rate(trace_context_propagation_total{direction="incoming",result="rejected"}[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Inbound trace context rejection rate is elevated
+      - alert: TraceSpanP99Above100ms
+        expr: histogram_quantile(0.99, sum(rate(trace_span_duration_seconds_bucket[5m])) by (le, route)) > 0.1
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: Tracing middleware observed P99 span duration above 100 ms
