@@ -1,0 +1,27 @@
+{
+  "title": "AgriTrust Distributed Tracing",
+  "schemaVersion": 39,
+  "panels": [
+    {
+      "title": "Trace context propagation by result",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "sum(rate(trace_context_propagation_total[5m])) by (direction, result)" }
+      ]
+    },
+    {
+      "title": "Server span duration P99",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "histogram_quantile(0.99, sum(rate(trace_span_duration_seconds_bucket[5m])) by (le, route))" }
+      ]
+    },
+    {
+      "title": "Rejected inbound trace context",
+      "type": "stat",
+      "targets": [
+        { "expr": "sum(rate(trace_context_propagation_total{direction=\"incoming\",result=\"rejected\"}[5m]))" }
+      ]
+    }
+  ]
+}
