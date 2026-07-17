@@ -41,7 +41,7 @@ export class JobQueuePersistence {
       const all = await Promise.all(
         [1, 2, 3, 4, 5].map((p) => this.redis.zcard(priorityKey(p as Priority))),
       );
-      const sum = all.reduce((a, b) => a + b, 0);
+      const sum = all.reduce((a: number, b: number) => a + b, 0);
       if (sum >= MAX_QUEUED_JOBS) {
         throw new QueueFullError();
       }
@@ -97,7 +97,7 @@ export class JobQueuePersistence {
     const counts = await Promise.all(
       [1, 2, 3, 4, 5].map((p) => this.redis.zcard(priorityKey(p as Priority))),
     );
-    return counts.reduce((a, b) => a + b, 0);
+    return counts.reduce((a: number, b: number) => a + b, 0);
   }
 
   /** Get queue depth per priority level. */
@@ -115,7 +115,9 @@ export class JobQueuePersistence {
     if (ids.length === 0) return [];
 
     const raws = await this.redis.hmget(JOB_HASH_KEY, ...ids);
-    return raws.filter(Boolean).map((r) => JSON.parse(r as string) as QueuedJob);
+    return raws
+      .filter((r): r is string => r !== null)
+      .map((r: string) => JSON.parse(r) as QueuedJob);
   }
 }
 
