@@ -5,6 +5,7 @@ import { Resource } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import * as grpc from '@grpc/grpc-js';
 import { tracingConfig } from '../config/tracing';
+import { logger } from '../logging/structured-logger';
 
 export function setupTracing(serviceName: string) {
   const exporter = new OTLPTraceExporter({
@@ -18,17 +19,20 @@ export function setupTracing(serviceName: string) {
     }),
     spanProcessor: new BatchSpanProcessor(exporter, {
       scheduledDelayMillis: tracingConfig.batchIntervalMs,
-    }),
+    }) as never,
   });
 
-  sdk.start()
-    .then(() => console.log(`Tracing initialized for ${serviceName}`))
-    .catch((error) => console.error('Error initializing tracing', error));
+  try {
+    sdk.start();
+    logger.info('otel.tracing.initialized', { 'service.name': serviceName });
+  } catch (error) {
+    logger.error('otel.tracing.initialization_failed', error);
+  }
 
   process.on('SIGTERM', () => {
     sdk.shutdown()
-      .then(() => console.log('Tracing terminated'))
-      .catch((error) => console.error('Error terminating tracing', error))
+      .then(() => logger.info('otel.tracing.terminated'))
+      .catch((error: unknown) => logger.error('otel.tracing.termination_failed', error))
       .finally(() => process.exit(0));
   });
 

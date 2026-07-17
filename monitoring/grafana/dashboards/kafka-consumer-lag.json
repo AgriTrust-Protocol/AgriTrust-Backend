@@ -1,0 +1,27 @@
+{
+  "title": "Kafka Consumer Lag and Auto-Scaling",
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Total lag by consumer group",
+      "targets": [{ "expr": "kafka_consumer_group_total_lag", "legendFormat": "{{service}}/{{group_id}}" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Partition lag hot spots",
+      "targets": [{ "expr": "kafka_consumer_group_lag", "legendFormat": "{{service}}/{{group_id}} {{topic}}[{{partition}}]" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Scaling decisions",
+      "targets": [{ "expr": "rate(kafka_consumer_group_scaling_decisions_total[5m])", "legendFormat": "{{service}}/{{group_id}} {{action}}" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Scaler evaluation latency",
+      "targets": [{ "expr": "histogram_quantile(0.99, rate(kafka_consumer_group_scaling_evaluation_duration_seconds_bucket[5m]))", "legendFormat": "p99" }]
+    }
+  ]
+}
