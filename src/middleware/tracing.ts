@@ -5,6 +5,7 @@ import { DeterministicSampler } from '../tracing/sampler';
 import { trace, context, SpanKind, SpanStatusCode } from '@opentelemetry/api';
 import { tracingConfig } from '../config/tracing';
 import { traceContextPropagationTotal, traceSpanDuration } from '../tracing/metrics';
+import { logger } from '../logging/structured-logger';
 
 const sampler = new DeterministicSampler(tracingConfig.samplingProbability);
 
@@ -81,7 +82,10 @@ export function tracingMiddleware(req: Request, res: Response, next: NextFunctio
     (req as any).baggageManager = baggageManager;
     (req as any).traceSpan = span;
 
+    const startTime = process.hrtime.bigint();
+
     res.on('finish', () => {
+      const durationMs = Number(process.hrtime.bigint() - startTime) / 1_000_000;
       span.setAttribute('http.status_code', res.statusCode);
       if (res.statusCode >= 400) {
         span.setStatus({ code: SpanStatusCode.ERROR });
@@ -91,6 +95,20 @@ export function tracingMiddleware(req: Request, res: Response, next: NextFunctio
       const route = (req as any).route?.path ?? req.path ?? 'unknown';
       const durationSec = Number(process.hrtime.bigint() - spanStart) / 1e9;
       traceSpanDuration.observe({ method: req.method, route, status_code: String(res.statusCode) }, durationSec);
+      logger.info('http.server.request.completed', {
+        'http.request.method': req.method,
+        'url.path': req.path,
+        'url.query': req.query && Object.keys(req.query).length > 0 ? JSON.stringify(req.query) : undefined,
+        'http.route': req.route?.path,
+        'http.response.status_code': res.statusCode,
+        'client.address': req.ip,
+        'user_agent.original': req.header('user-agent'),
+        'server.address': req.hostname,
+        'network.protocol.version': req.httpVersion,
+        'http.server.request.duration_ms': Number(durationMs.toFixed(3)),
+        'agritrust.tenant_id': baggageManager.get('agritrust.tenant-id') || req.header('x-tenant-id'),
+        'agritrust.batch_id': baggageManager.get('agritrust.batch-id') || req.header('x-batch-id'),
+      });
       span.end();
     });
 
@@ -100,7 +118,7 @@ export function tracingMiddleware(req: Request, res: Response, next: NextFunctio
       next();
     });
   } catch (err) {
-    console.error('Error in tracing middleware:', err);
+    logger.error('tracing.middleware.error', err);
     next(err);
   }
 }

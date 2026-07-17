@@ -1,0 +1,8 @@
+{
+  "title": "Graceful Degradation",
+  "panels": [
+    { "title": "Capacity Score", "type": "timeseries", "targets": [{ "expr": "resilience_capacity_score" }] },
+    { "title": "Shed Requests", "type": "timeseries", "targets": [{ "expr": "sum by (priority, reason) (rate(resilience_shed_requests_total[5m]))" }] },
+    { "title": "Degraded Responses", "type": "timeseries", "targets": [{ "expr": "sum by (priority, reason) (rate(resilience_degraded_responses_total[5m]))" }] }
+  ]
+}

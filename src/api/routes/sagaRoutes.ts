@@ -5,8 +5,8 @@ import { SagaLogStore } from '../../database/saga_log';
 /**
  * Admin/debug routes for the saga orchestration coordinator.
  *
- *   GET  /admin/sagas/:id        — inspect a saga's status and full step log
- *   POST /admin/sagas/:id/retry  — manually retry a failed saga
+ * GET  /admin/sagas/:id        — inspect a saga's status and full step log
+ * POST /admin/sagas/:id/retry  — manually retry a failed saga
  */
 export function createSagaRouter(
   coordinator: SagaCoordinator,
@@ -32,6 +32,13 @@ export function createSagaRouter(
   router.post('/:id/retry', async (req: Request, res: Response) => {
     const sagaId = req.params.id as string;
     try {
+      const view = await logStore.getSaga(sagaId);
+      const originalParams = (view.execution as any)?.payload;
+      
+      if (originalParams && originalParams.variantName) {
+        console.log(`[Canary Tracker] Retrying saga ${sagaId} under original experiment variant context: ${originalParams.variantName}`);
+      }
+
       const result = await coordinator.retry(sagaId);
       res.status(200).json(result);
     } catch (err) {

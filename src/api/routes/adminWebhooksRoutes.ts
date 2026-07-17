@@ -12,13 +12,13 @@ export function createAdminWebhooksRouter(queue: DeliveryQueue, deadLetters: Dea
   router.post('/webhooks/dead-letter/:id/replay', async (req: Request, res: Response) => {
     const dead = await deadLetters.remove(String(req.params.id));
     if (!dead) { res.status(404).json({ error: 'Dead-letter delivery not found' }); return; }
-    const replay = await dispatcher.dispatch({ id: randomUUID(), tenantId: dead.tenantId, subscriptionId: dead.subscriptionId, url: dead.url, eventType: dead.eventType, payload: dead.payload, idempotencyKey: randomUUID() });
+    const replay = await dispatcher.dispatch({ id: randomUUID(), tenantId: dead.tenantId, subscriptionId: dead.subscriptionId, url: dead.url, eventType: dead.eventType, payload: dead.payload, secret: dead.secret, idempotencyKey: randomUUID() });
     res.status(202).json({ replay });
   });
   router.post('/webhooks/subscriptions', async (req: Request, res: Response) => {
-    const { tenantId, url, eventTypes } = req.body ?? {};
+    const { tenantId, url, eventTypes, secret } = req.body ?? {};
     if (typeof tenantId !== 'string' || typeof url !== 'string') { res.status(400).json({ error: 'tenantId and url are required' }); return; }
-    res.status(201).json({ subscription: await subscriptions.register({ tenantId, url, eventTypes }) });
+    res.status(201).json({ subscription: await subscriptions.register({ tenantId, url, eventTypes, secret }) });
   });
   return router;
 }
