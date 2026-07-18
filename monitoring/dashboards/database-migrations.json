@@ -1,0 +1,8 @@
+{
+  "title": "Database Migrations",
+  "panels": [
+    { "type": "stat", "title": "Current Migration Version", "targets": [{ "expr": "database_migration_current_version" }] },
+    { "type": "timeseries", "title": "Migration Executions", "targets": [{ "expr": "sum by (direction,status) (rate(database_migration_executions_total[5m]))" }] },
+    { "type": "timeseries", "title": "Migration Duration P99", "targets": [{ "expr": "histogram_quantile(0.99, sum by (le,direction) (rate(database_migration_duration_ms_bucket[5m])))" }] }
+  ]
+}
