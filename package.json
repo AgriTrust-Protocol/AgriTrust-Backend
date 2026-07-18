@@ -12,6 +12,7 @@
     "test:lock": "npx ts-node tests/integration/silo_lock_test.ts",
     "test:unit": "npx ts-node tests/unit/sensors.test.ts",
     "migrate": "node -e \"require('./src/database/migrate')\"",
+    "import:parcels": "npx ts-node src/cli/import_parcels.ts",
     "performance:check": "npx ts-node scripts/check-performance-regression.ts"
   },
   "dependencies": {
