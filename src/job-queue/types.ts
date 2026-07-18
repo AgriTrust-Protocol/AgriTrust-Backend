@@ -44,6 +44,9 @@ export interface QueuedJob {
   payload: unknown;
   submittedAt: number; // unix ms
   retryCount: number;
+  leaseOwner?: string;
+  leaseExpiresAt?: number;
+  lastClaimedAt?: number;
 }
 
 /** An active (running) job. */
@@ -73,3 +76,5 @@ export const DEFAULT_JOB_TIMEOUT_MS = 300_000;
 
 /** Max retries per job. */
 export const DEFAULT_RETRY_LIMIT = 2;
+/** Default worker lease duration in ms. */
+export const DEFAULT_JOB_LEASE_MS = 60_000;

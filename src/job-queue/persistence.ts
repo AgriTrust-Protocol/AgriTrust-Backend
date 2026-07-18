@@ -1,5 +1,6 @@
 import Redis, { Redis as RedisClient } from 'ioredis';
 import { QueuedJob, Priority, MAX_QUEUED_JOBS } from './types';
+import { jobLeaseClaimDurationSeconds, jobLeaseClaimsTotal, jobLeaseReclaimsTotal, jobLeasesActive } from './metrics';
 
 /** Redis key prefix for priority sorted sets. */
 function priorityKey(p: Priority): string {
@@ -8,6 +9,7 @@ function priorityKey(p: Priority): string {
 
 /** Redis key for the global job hash (id → serialised job). */
 const JOB_HASH_KEY = 'jobq:jobs';
+const LEASE_ZSET_KEY = 'jobq:leases';
 
 /**
  * Redis-backed persistence layer for the job queue.
@@ -54,6 +56,121 @@ export class JobQueuePersistence {
     await multi.exec();
   }
 
+
+  /**
+   * Atomically claim the oldest pending job for a priority level under a lease.
+   * The Lua script removes the job from its priority set, stamps lease metadata
+   * in the job hash, and records the lease expiry in a global sorted set.
+   */
+  async claimDue(priority: Priority, workerId: string, leaseMs: number, now = Date.now()): Promise<QueuedJob | null> {
+    const end = jobLeaseClaimDurationSeconds.startTimer();
+    try {
+      const leaseExpiresAt = now + leaseMs;
+      const result = await (this.redis as unknown as { call: (...args: unknown[]) => Promise<unknown> }).call(
+        'EVAL',
+        `
+        local job_id = redis.call('ZRANGE', KEYS[1], 0, 0)[1]
+        if not job_id then return nil end
+        local raw = redis.call('HGET', KEYS[2], job_id)
+        if not raw then
+          redis.call('ZREM', KEYS[1], job_id)
+          return nil
+        end
+        redis.call('ZREM', KEYS[1], job_id)
+        redis.call('ZADD', KEYS[3], ARGV[2], job_id)
+        return raw
+        `,
+        3,
+        priorityKey(priority),
+        JOB_HASH_KEY,
+        LEASE_ZSET_KEY,
+        workerId,
+        String(leaseExpiresAt),
+      );
+
+      if (typeof result !== 'string') {
+        jobLeaseClaimsTotal.inc({ result: 'empty' });
+        return null;
+      }
+
+      const job = JSON.parse(result) as QueuedJob;
+      const claimed: QueuedJob = { ...job, leaseOwner: workerId, leaseExpiresAt, lastClaimedAt: now };
+      await this.redis.hset(JOB_HASH_KEY, job.id, JSON.stringify(claimed));
+      jobLeaseClaimsTotal.inc({ result: 'claimed' });
+      return claimed;
+    } catch (err) {
+      jobLeaseClaimsTotal.inc({ result: 'error' });
+      throw err;
+    } finally {
+      end();
+      await this.refreshActiveLeaseMetric();
+    }
+  }
+
+  /** Acknowledge a completed job and remove its lease. */
+  async ack(jobId: string, workerId: string): Promise<boolean> {
+    const raw = await this.redis.hget(JOB_HASH_KEY, jobId);
+    if (!raw) return false;
+    const job = JSON.parse(raw) as QueuedJob;
+    if (job.leaseOwner !== workerId) return false;
+    const multi = this.redis.multi();
+    multi.hdel(JOB_HASH_KEY, jobId);
+    multi.zrem(LEASE_ZSET_KEY, jobId);
+    await multi.exec();
+    await this.refreshActiveLeaseMetric();
+    return true;
+  }
+
+  /** Release a claimed job back to its priority queue when dispatch cannot start. */
+  async releaseLease(job: QueuedJob, workerId: string, submittedAt = Date.now()): Promise<boolean> {
+    if (job.leaseOwner !== workerId) return false;
+    const released: QueuedJob = { ...job, submittedAt };
+    delete released.leaseOwner;
+    delete released.leaseExpiresAt;
+    const multi = this.redis.multi();
+    multi.hset(JOB_HASH_KEY, job.id, JSON.stringify(released));
+    multi.zrem(LEASE_ZSET_KEY, job.id);
+    multi.zadd(priorityKey(job.priority), submittedAt, job.id);
+    await multi.exec();
+    await this.refreshActiveLeaseMetric();
+    return true;
+  }
+
+  /** Requeue expired leases so another scheduler instance can claim them. */
+  async reclaimExpiredLeases(now = Date.now(), limit = 100): Promise<number> {
+    const ids = (await (this.redis as unknown as { call: (...args: unknown[]) => Promise<unknown> }).call('ZRANGEBYSCORE', LEASE_ZSET_KEY, '0', String(now), 'LIMIT', '0', String(limit))) as string[];
+    let reclaimed = 0;
+    for (const id of ids) {
+      const raw = await this.redis.hget(JOB_HASH_KEY, id);
+      if (!raw) {
+        await this.redis.zrem(LEASE_ZSET_KEY, id);
+        continue;
+      }
+      const job = JSON.parse(raw) as QueuedJob;
+      if (!job.leaseExpiresAt || job.leaseExpiresAt > now) continue;
+      const retryJob: QueuedJob = {
+        ...job,
+        retryCount: (job.retryCount ?? 0) + 1,
+        submittedAt: now,
+      };
+      delete retryJob.leaseOwner;
+      delete retryJob.leaseExpiresAt;
+      const multi = this.redis.multi();
+      multi.hset(JOB_HASH_KEY, id, JSON.stringify(retryJob));
+      multi.zrem(LEASE_ZSET_KEY, id);
+      multi.zadd(priorityKey(retryJob.priority), now, id);
+      await multi.exec();
+      reclaimed += 1;
+    }
+    if (reclaimed > 0) jobLeaseReclaimsTotal.inc(reclaimed);
+    await this.refreshActiveLeaseMetric();
+    return reclaimed;
+  }
+
+  private async refreshActiveLeaseMetric(): Promise<void> {
+    jobLeasesActive.set(await this.redis.zcard(LEASE_ZSET_KEY));
+  }
+
   /**
    * Dequeue the oldest job from a priority level.  Returns null if the
    * level is empty.
@@ -87,6 +204,7 @@ export class JobQueuePersistence {
     const job = JSON.parse(raw) as QueuedJob;
     const multi = this.redis.multi();
     multi.zrem(priorityKey(job.priority), jobId);
+    multi.zrem(LEASE_ZSET_KEY, jobId);
     multi.hdel(JOB_HASH_KEY, jobId);
     await multi.exec();
     return true;
