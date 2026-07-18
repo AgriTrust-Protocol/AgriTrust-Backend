@@ -1,0 +1,26 @@
+{
+  "title": "AgriTrust Capacity Planning",
+  "schemaVersion": 39,
+  "panels": [
+    {
+      "title": "Current Utilization",
+      "type": "timeseries",
+      "targets": [{ "expr": "capacity_planning_current_utilization_ratio" }]
+    },
+    {
+      "title": "Projected Utilization",
+      "type": "timeseries",
+      "targets": [{ "expr": "capacity_planning_projected_utilization_ratio" }]
+    },
+    {
+      "title": "Hours To Critical Threshold",
+      "type": "timeseries",
+      "targets": [{ "expr": "capacity_planning_hours_to_critical_threshold" }]
+    },
+    {
+      "title": "Critical Path P99",
+      "type": "timeseries",
+      "targets": [{ "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, route))" }]
+    }
+  ]
+}
