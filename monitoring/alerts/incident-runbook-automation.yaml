@@ -1,0 +1,20 @@
+groups:
+  - name: incident-runbook-automation
+    rules:
+      - alert: IncidentRunbookAutomationFailures
+        expr: increase(incident_runbook_executions_total{status="failed"}[5m]) > 0
+        for: 2m
+        labels:
+          severity: critical
+          pagerduty: platform
+        annotations:
+          summary: Incident runbook automation failed
+          runbook: docs/operations/incident-response-pagerduty.md#automation-failure
+      - alert: PagerDutyTriggerP99Above100ms
+        expr: histogram_quantile(0.99, sum(rate(incident_pagerduty_trigger_duration_ms_bucket[5m])) by (le, service)) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: PagerDuty trigger path is above the 100ms P99 target
+          runbook: docs/operations/incident-response-pagerduty.md#pagerduty-latency
