@@ -11,7 +11,7 @@ export class WorkerPool {
   private readonly active = new Map<string, ActiveJob>();
   private readonly activeCountByType = new Map<string, number>();
   private poolSize: number;
-  private onCompleteCallbacks: Array<{ jobId: string; cb: () => void }> = [];
+  private onCompleteCallbacks: Array<{ jobId: string; cb: (retryJob?: QueuedJob | null) => void }> = [];
 
   constructor(poolSize: number = DEFAULT_WORKER_POOL_SIZE) {
     this.poolSize = poolSize;
@@ -117,14 +117,21 @@ export class WorkerPool {
   }
 
   /** Register a callback to fire when a job completes or fails. */
-  onComplete(jobId: string, cb: () => void): void {
+  onComplete(jobId: string, cb: (retryJob?: QueuedJob | null) => void): void {
     this.onCompleteCallbacks.push({ jobId, cb });
+  }
+
+  removeOnComplete(jobId: string): void {
+    const idx = this.onCompleteCallbacks.findIndex((c) => c.jobId === jobId);
+    if (idx !== -1) {
+      this.onCompleteCallbacks.splice(idx, 1);
+    }
   }
 
   private fireOnComplete(jobId: string, retryJob?: QueuedJob | null): void {
     const idx = this.onCompleteCallbacks.findIndex((c) => c.jobId === jobId);
     if (idx !== -1) {
-      this.onCompleteCallbacks[idx].cb();
+      this.onCompleteCallbacks[idx].cb(retryJob);
       this.onCompleteCallbacks.splice(idx, 1);
     }
   }
