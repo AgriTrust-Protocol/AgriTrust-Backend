@@ -66,6 +66,15 @@ export const DEFAULT_JOB_CONFIGS: Record<string, JobTypeConfig> = {
       retryLimit: 2,
     },
   },
+  database_backup_verification: {
+    priority: Priority.High,
+    maxConcurrency: 1,
+    resourceBudget: {
+      maxConcurrency: 1,
+      timeoutMs: 900_000,
+      retryLimit: 1,
+    },
+  },
   key_retirement: {
     priority: Priority.Low,
     maxConcurrency: 1,
