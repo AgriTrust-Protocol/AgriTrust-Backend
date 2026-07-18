@@ -29,6 +29,16 @@ export class MemoryRedis {
   async lpush(key: string, value: string): Promise<number> { const list = this.lists.get(key) ?? []; list.unshift(value); this.lists.set(key, list); return list.length; }
   async lrange(key: string, start: number, stop: number): Promise<string[]> { const list = this.lists.get(key) ?? []; return list.slice(start, stop < 0 ? undefined : stop + 1); }
   async lrem(key: string, _count: number, value: string): Promise<number> { const list = this.lists.get(key) ?? []; const before = list.length; this.lists.set(key, list.filter((v) => v !== value)); return before - (this.lists.get(key)?.length ?? 0); }
+  async get(key: string): Promise<string | null> {
+    const existing = this.strings.get(key);
+    if (!existing) return null;
+    if (existing.expiresAt && existing.expiresAt <= Date.now()) {
+      this.strings.delete(key);
+      return null;
+    }
+    return existing.value;
+  }
+  async del(key: string): Promise<number> { return this.strings.delete(key) ? 1 : 0; }
   async set(key: string, value: string, mode?: string, ttl?: number, nx?: string): Promise<'OK' | null> {
     const existing = this.strings.get(key); if (existing?.expiresAt && existing.expiresAt <= Date.now()) this.strings.delete(key);
     if (nx === 'NX' && this.strings.has(key)) return null;

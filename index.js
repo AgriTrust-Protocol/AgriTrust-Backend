@@ -43,6 +43,10 @@ try {
 }
 app.use(metricsMiddleware);
 
+// ─── Mount Canary Middleware & Admin Routing Elements ─────────────────────────
+app.use(AdminExperimentRouter); // Registers /admin/experiments routes
+app.use(experimentMiddleware);  // Intercepts and flags incoming traffic properties
+
 app.get('/', (req, res) => {
   res.json({ 
     project: 'Grant Stream',
@@ -188,15 +192,26 @@ app.get('/debug/metrics/check', async (_req, res) => {
 });
 
 
-// ─── Farm Activity Audit Trail (Issue #92) ─────────────────────────────────
-{
+// ─── Geospatial Parcel Query Service (Issue #93) ────────────────────────────
+try {
   const { Pool } = require('pg');
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  const { FarmActivityAuditService } = require('./dist/src/audit/farmActivityAudit');
-  const { createAuditRouter } = require('./dist/src/api/routes/auditRoutes');
-
-  const auditService = new FarmActivityAuditService(pool);
-  app.use('/api/v1/audit', createAuditRouter(auditService));
+  let parcelModules;
+  try {
+    parcelModules = {
+      ...require('./dist/src/parcels/parcelService'),
+      ...require('./dist/src/parcels/routes'),
+    };
+  } catch {
+    parcelModules = {
+      ...require('./src/parcels/parcelService'),
+      ...require('./src/parcels/routes'),
+    };
+  }
+  const parcelService = new parcelModules.ParcelService(pool);
+  app.use('/api/v1/parcels', parcelModules.createParcelRouter(parcelService));
+} catch (err) {
+  console.warn('Parcel geospatial modules not found or failed to load. Skipping init.');
 }
 
 // ─── Certificate Minting Service & Routes ───────────────────────────────────

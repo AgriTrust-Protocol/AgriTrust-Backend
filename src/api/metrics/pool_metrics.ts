@@ -40,6 +40,27 @@ export const poolConnectionsTotal = new Gauge({
   registers: [metricsRegistry],
 });
 
+export const poolHealthStatus = new Gauge({
+  name: 'pool_health_status',
+  help: 'PostgreSQL pool health by status (1 for current status, 0 otherwise)',
+  labelNames: ['pool', 'status'],
+  registers: [metricsRegistry],
+});
+
+export const poolProbeLatencyMs = new Gauge({
+  name: 'pool_probe_latency_ms',
+  help: 'Latest PostgreSQL pool health probe latency in milliseconds',
+  labelNames: ['pool'],
+  registers: [metricsRegistry],
+});
+
+export const poolConnectionsWaiting = new Gauge({
+  name: 'pool_connections_waiting',
+  help: 'Number of callers waiting for a PostgreSQL pool connection',
+  labelNames: ['pool'],
+  registers: [metricsRegistry],
+});
+
 // ─── Pool Registration ──────────────────────────────────────────────────────
 
 interface PoolEntry {
@@ -72,6 +93,15 @@ export function collectPoolMetrics(): void {
     poolConnectionsActive.set({ pool: name }, acquired);
     poolConnectionsIdle.set({ pool: name }, idle);
     poolConnectionsTotal.set({ pool: name }, max);
+    poolConnectionsWaiting.set({ pool: name }, pool.getWaitingCount());
+
+    const health = pool.getLastHealth();
+    if (health) {
+      poolProbeLatencyMs.set({ pool: name }, health.latencyMs);
+      for (const status of ['healthy', 'degraded', 'unhealthy'] as const) {
+        poolHealthStatus.set({ pool: name, status }, health.status === status ? 1 : 0);
+      }
+    }
   }
 }
 
@@ -83,4 +113,7 @@ export function resetPoolMetrics(): void {
   poolConnectionsActive.reset();
   poolConnectionsIdle.reset();
   poolConnectionsTotal.reset();
+  poolConnectionsWaiting.reset();
+  poolProbeLatencyMs.reset();
+  poolHealthStatus.reset();
 }

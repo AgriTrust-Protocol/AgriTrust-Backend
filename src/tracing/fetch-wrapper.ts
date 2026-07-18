@@ -1,6 +1,7 @@
-import { trace, context, Span, SpanContext } from '@opentelemetry/api';
+import { trace, context, Span } from '@opentelemetry/api';
 import { TraceContext, TraceParent } from './trace-context';
 import { BaggageManager } from './baggage-manager';
+import { traceContextPropagationTotal } from './metrics';
 
 export async function tracedFetch(
   url: string,
@@ -20,6 +21,7 @@ export async function tracedFetch(
       traceFlags: ctx.traceFlags.toString(16).padStart(2, '0'),
     };
     headers.set('traceparent', TraceContext.formatTraceParent(traceParent));
+    traceContextPropagationTotal.inc({ direction: 'outgoing', result: 'injected' });
 
     // Propagate tracestate if it exists in the span context or elsewhere
     // Since OTel SpanContext might have traceState, we should use it
@@ -59,6 +61,7 @@ export function wrapGlobalFetch() {
         traceFlags: ctx.traceFlags.toString(16).padStart(2, '0'),
       };
       headers.set('traceparent', TraceContext.formatTraceParent(traceParent));
+      traceContextPropagationTotal.inc({ direction: 'outgoing', result: 'injected' });
 
       if ((ctx as any).traceState) {
         const ts = (ctx as any).traceState.serialize();

@@ -1,0 +1,62 @@
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: agritrust-backend-strict-mtls
+  namespace: agritrust
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: agritrust-backend-mtls
+  namespace: agritrust
+spec:
+  host: agritrust-backend.agritrust.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: agritrust-backend-blue-green-canary
+  namespace: agritrust
+spec:
+  hosts:
+    - agritrust-backend.agritrust.svc.cluster.local
+  http:
+    - match:
+        - headers:
+            x-canary:
+              exact: "true"
+      route:
+        - destination:
+            host: agritrust-backend.agritrust.svc.cluster.local
+            subset: green
+          weight: 100
+    - route:
+        - destination:
+            host: agritrust-backend.agritrust.svc.cluster.local
+            subset: blue
+          weight: 95
+        - destination:
+            host: agritrust-backend.agritrust.svc.cluster.local
+            subset: green
+          weight: 5
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: agritrust-backend-blue-green-subsets
+  namespace: agritrust
+spec:
+  host: agritrust-backend.agritrust.svc.cluster.local
+  subsets:
+    - name: blue
+      labels:
+        version: blue
+    - name: green
+      labels:
+        version: green

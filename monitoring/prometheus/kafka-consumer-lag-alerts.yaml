@@ -1,0 +1,29 @@
+groups:
+  - name: kafka-consumer-lag
+    rules:
+      - alert: KafkaConsumerGroupLagCritical
+        expr: kafka_consumer_group_total_lag > 1000
+        for: 5m
+        labels:
+          severity: critical
+          slo: availability
+        annotations:
+          summary: Kafka consumer group lag is critical
+          description: '{{ $labels.service }}/{{ $labels.group_id }} has more than 1000 queued messages for 5 minutes.'
+      - alert: KafkaConsumerGroupLagGrowing
+        expr: deriv(kafka_consumer_group_total_lag[10m]) > 0
+        for: 15m
+        labels:
+          severity: warning
+          slo: latency
+        annotations:
+          summary: Kafka consumer group lag is increasing
+          description: '{{ $labels.service }}/{{ $labels.group_id }} lag has grown for 15 minutes; check consumers before P99 latency is impacted.'
+      - alert: KafkaConsumerScalerAtMaxReplicas
+        expr: increase(kafka_consumer_group_scaling_decisions_total{action="none"}[10m]) > 0 and kafka_consumer_group_total_lag > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Kafka auto-scaler cannot reduce lag
+          description: '{{ $labels.service }}/{{ $labels.group_id }} still has lag after non-scaling decisions; verify max replicas and partition count.'
