@@ -1,0 +1,16 @@
+.git
+.github
+node_modules
+npm-debug.log*
+coverage
+dist
+.env
+.env.*
+*.local
+Dockerfile*
+docker-compose*.yml
+README.md
+docs
+monitoring
+tmp-*.txt
+package.json.updated

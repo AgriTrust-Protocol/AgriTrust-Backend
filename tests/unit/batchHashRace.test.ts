@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { createHash } from 'crypto';
 import { sha256hex, validateBatchData, type BatchDataPayload } from '../../src/validation/batchIntegrity';
 import { verifyBatchHash, finaliseIntegrityHash } from '../../src/certification/hashVerifier';
-import type { Pool, PoolClient, QueryResult } from 'pg';
+import type { Pool, PoolClient, QueryResult, QueryConfig, QueryConfigValues } from 'pg';
 
 // ─── In-memory fake Pool ─────────────────────────────────────────────────────
 // Models only the query paths exercised by validateBatchData / hashVerifier.
@@ -19,9 +19,16 @@ function makePool(
   // the fake's in-memory state is never corrupted by JS micro-task interleaving.
   let lock = Promise.resolve();
 
+  function normalizeQuery(query: string | QueryConfig, values?: QueryConfigValues<unknown[]>): { sql: string; params?: unknown[] } {
+    return typeof query === 'string'
+      ? { sql: query, params: values as unknown[] | undefined }
+      : { sql: query.text, params: query.values as unknown[] | undefined };
+  }
+
   function makeClient(): PoolClient {
     const client: Partial<PoolClient> = {
-      query: async (sql: string, params?: unknown[]): Promise<QueryResult<any>> => {
+      query: (async (query: string | QueryConfig, values?: QueryConfigValues<unknown[]>): Promise<QueryResult<any>> => {
+        const { sql, params } = normalizeQuery(query, values);
         // Wrap every statement in the serialize lock.
         const result = await new Promise<QueryResult<any>>((resolve) => {
           lock = lock.then(() => {
@@ -65,7 +72,7 @@ function makePool(
           });
         });
         return result;
-      },
+      }) as PoolClient['query'],
       release: () => {},
     };
     return client as PoolClient;
@@ -73,11 +80,11 @@ function makePool(
 
   const pool: Partial<Pool> = {
     connect: async () => makeClient(),
-    query: async (sql: string, params?: unknown[]): Promise<QueryResult<any>> => {
+    query: (async (query: string | QueryConfig, values?: QueryConfigValues<unknown[]>): Promise<QueryResult<any>> => {
       // Direct pool.query used by hashVerifier
       const client = makeClient();
-      return client.query(sql, params);
-    },
+      return client.query(query, values);
+    }) as Pool['query'],
   };
   return pool as Pool;
 }

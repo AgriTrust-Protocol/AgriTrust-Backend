@@ -40,7 +40,7 @@ describe('API Versioning Transformations', () => {
 
   it('should complete transformations within 50ms for 1MB payloads (p99)', () => {
     // Generate a 1MB payload roughly
-    const largeMetadata = {};
+    const largeMetadata: Record<string, string> = {};
     for (let i = 0; i < 10000; i++) {
       largeMetadata[`key_${i}`] = 'a'.repeat(100);
     }
