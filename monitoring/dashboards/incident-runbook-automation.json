@@ -1,0 +1,17 @@
+{
+  "title": "AgriTrust Incident Runbook Automation",
+  "uid": "incident-runbook-automation",
+  "schemaVersion": 39,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Runbook executions by status",
+      "targets": [{ "expr": "sum(rate(incident_runbook_executions_total[5m])) by (runbook_id, status)" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "PagerDuty trigger P99 latency (ms)",
+      "targets": [{ "expr": "histogram_quantile(0.99, sum(rate(incident_pagerduty_trigger_duration_ms_bucket[5m])) by (le, service))" }]
+    }
+  ]
+}
