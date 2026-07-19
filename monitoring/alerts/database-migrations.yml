@@ -1,0 +1,11 @@
+groups:
+  - name: database-migrations
+    rules:
+      - alert: DatabaseMigrationFailure
+        expr: increase(database_migration_executions_total{status="failure"}[10m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: Database migration failure detected
+          description: A database migration or rollback failed during the last 10 minutes.
