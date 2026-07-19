@@ -84,6 +84,7 @@ export class KeyRotationOrchestrator {
     const encryptedPrivateKey = this.encryptPrivateKey(privateKey, masterKey);
 
     const newKey = await this.keyStore.rotate(purpose, {
+      purpose,
       type,
       publicKey,
       encryptedPrivateKey,
@@ -119,7 +120,7 @@ export class KeyRotationOrchestrator {
       }
 
       if (type === KeyType.ED25519) {
-        crypto.generateKeyPair('ed25519', (err, publicKey, privateKey) => {
+        crypto.generateKeyPair('ed25519', {}, (err: Error | null, publicKey: crypto.KeyObject, privateKey: crypto.KeyObject) => {
           if (err) return reject(err);
           resolve({
             publicKey: publicKey.export({ type: 'spki', format: 'pem' }) as string,

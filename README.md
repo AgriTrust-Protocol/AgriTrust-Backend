@@ -23,12 +23,14 @@ Ensure you have the required toolchains installed:
 # Clone the repository (if running manually)
 git clone https://github.com/AgriTrust-Protocol/AgriTrust-Backend
 
-# Install dependencies or build
-npm install
+# Run the guided onboarding script (checks Node.js, creates .env, installs deps, builds)
+npm run onboard
 
 # Start the application
 npm start
 ```
+
+For detailed local setup options, including running tests during onboarding or recreating `.env`, see [Local Development Onboarding](docs/onboarding/local-development.md).
 
 ## 🤝 Contributing
 Contributions are highly welcome. Please ensure your commits are cryptographically signed using GPG or SSH keys. For major structural changes, please open an issue first to discuss your proposal.

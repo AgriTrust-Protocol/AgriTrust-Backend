@@ -1,6 +1,5 @@
 import Redis, { Redis as RedisClient } from 'ioredis';
-import { QueuedJob, Priority, MAX_QUEUED_JOBS } from './types';
-import { jobLeaseClaimDurationSeconds, jobLeaseClaimsTotal, jobLeaseReclaimsTotal, jobLeasesActive } from './metrics';
+import { DeadLetterJob, QueuedJob, Priority, MAX_QUEUED_JOBS } from './types';
 
 /** Redis key prefix for priority sorted sets. */
 function priorityKey(p: Priority): string {
@@ -9,7 +8,8 @@ function priorityKey(p: Priority): string {
 
 /** Redis key for the global job hash (id → serialised job). */
 const JOB_HASH_KEY = 'jobq:jobs';
-const LEASE_ZSET_KEY = 'jobq:leases';
+const DLQ_HASH_KEY = 'jobq:dlq:jobs';
+const DLQ_INDEX_KEY = 'jobq:dlq:index';
 
 /**
  * Redis-backed persistence layer for the job queue.
@@ -208,6 +208,72 @@ export class JobQueuePersistence {
     multi.hdel(JOB_HASH_KEY, jobId);
     await multi.exec();
     return true;
+  }
+
+  /** Persist a terminally failed job in the dead letter queue. */
+  async deadLetter(job: DeadLetterJob): Promise<void> {
+    const serialised = JSON.stringify(job);
+    const multi = this.redis.multi();
+    multi.hset(DLQ_HASH_KEY, job.id, serialised);
+    multi.zadd(DLQ_INDEX_KEY, job.failedAt, job.id);
+    await multi.exec();
+  }
+
+  /** List recent dead-lettered jobs, newest first. */
+  async listDeadLetters(limit = 100): Promise<DeadLetterJob[]> {
+    const ids = (await (this.redis as unknown as { call: (...args: string[]) => Promise<unknown> }).call(
+      'ZREVRANGE',
+      DLQ_INDEX_KEY,
+      '0',
+      String(Math.max(0, limit - 1)),
+    )) as string[];
+    if (ids.length === 0) return [];
+
+    const raws = await this.redis.hmget(DLQ_HASH_KEY, ...ids);
+    return raws
+      .filter((r): r is string => r !== null)
+      .map((r: string) => JSON.parse(r) as DeadLetterJob);
+  }
+
+  /** Get one dead-lettered job by id. */
+  async getDeadLetter(jobId: string): Promise<DeadLetterJob | null> {
+    const raw = await this.redis.hget(DLQ_HASH_KEY, jobId);
+    return raw ? (JSON.parse(raw) as DeadLetterJob) : null;
+  }
+
+  /** Replay a dead-lettered job by moving it back to the live queue. */
+  async replayDeadLetter(jobId: string): Promise<DeadLetterJob | null> {
+    const dead = await this.getDeadLetter(jobId);
+    if (!dead) return null;
+
+    const retryJob: QueuedJob = {
+      id: dead.id,
+      type: dead.type,
+      priority: dead.priority,
+      payload: dead.payload,
+      submittedAt: Date.now(),
+      retryCount: 0,
+    };
+    const multi = this.redis.multi();
+    multi.hdel(DLQ_HASH_KEY, jobId);
+    multi.zrem(DLQ_INDEX_KEY, jobId);
+    multi.hset(JOB_HASH_KEY, retryJob.id, JSON.stringify(retryJob));
+    multi.zadd(priorityKey(retryJob.priority), retryJob.submittedAt, retryJob.id);
+    await multi.exec();
+    return dead;
+  }
+
+  /** Permanently delete a dead-lettered job after operator review. */
+  async purgeDeadLetter(jobId: string): Promise<boolean> {
+    const removed = await this.redis.hdel(DLQ_HASH_KEY, jobId);
+    if (removed === 0) return false;
+    await this.redis.zrem(DLQ_INDEX_KEY, jobId);
+    return true;
+  }
+
+  /** Get total dead-letter queue depth. */
+  async deadLetterDepth(): Promise<number> {
+    return this.redis.zcard(DLQ_INDEX_KEY);
   }
 
   /** Get total queue depth across all priorities. */

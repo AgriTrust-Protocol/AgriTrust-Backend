@@ -1,4 +1,4 @@
-import { ActiveJob, DEFAULT_JOB_TIMEOUT_MS, DEFAULT_RETRY_LIMIT, DEFAULT_WORKER_POOL_SIZE, JobDef, QueuedJob, TICK_INTERVAL_MS } from './types';
+import { ActiveJob, DEFAULT_JOB_TIMEOUT_MS, DEFAULT_RETRY_LIMIT, DEFAULT_WORKER_POOL_SIZE, JobCompletion, JobDef, QueuedJob } from './types';
 
 /**
  * Manages the lifecycle and concurrency of running jobs.
@@ -11,7 +11,7 @@ export class WorkerPool {
   private readonly active = new Map<string, ActiveJob>();
   private readonly activeCountByType = new Map<string, number>();
   private poolSize: number;
-  private onCompleteCallbacks: Array<{ jobId: string; cb: (retryJob?: QueuedJob | null) => void }> = [];
+  private onCompleteCallbacks: Array<{ jobId: string; cb: (completion: JobCompletion) => void }> = [];
 
   constructor(poolSize: number = DEFAULT_WORKER_POOL_SIZE) {
     this.poolSize = poolSize;
@@ -70,9 +70,10 @@ export class WorkerPool {
 
     try {
       await this.runWithTimeout(def.handler, job.payload, def.timeoutMs ?? DEFAULT_JOB_TIMEOUT_MS);
-      this.fireOnComplete(job.id);
+      this.fireOnComplete(job.id, { status: 'succeeded' });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const error = err instanceof Error ? err : new Error(String(err));
+      const msg = error.message;
       console.error(`[WorkerPool] Job ${job.id} (${job.type}) failed: ${msg}`);
 
       if ((job.retryCount ?? 0) < (def.resourceBudget?.retryLimit ?? DEFAULT_RETRY_LIMIT)) {
@@ -84,10 +85,19 @@ export class WorkerPool {
         };
         // We need to re-enqueue to persistence — hook this externally.
         console.log(`[WorkerPool] Retrying job ${job.id} (attempt ${retryJob.retryCount})`);
-        this.fireOnComplete(job.id, retryJob);
+        this.fireOnComplete(job.id, { status: 'retry', retryJob, error });
       } else {
-        console.error(`[WorkerPool] Job ${job.id} exhausted retries — discarding`);
-        this.fireOnComplete(job.id, null);
+        console.error(`[WorkerPool] Job ${job.id} exhausted retries — sending to dead letter queue`);
+        this.fireOnComplete(job.id, {
+          status: 'dead-letter',
+          deadLetterJob: {
+            ...job,
+            failedAt: Date.now(),
+            reason: msg.startsWith('Job timed out after') ? 'timeout' : 'handler_error',
+            errorMessage: msg,
+            attempts: (job.retryCount ?? 0) + 1,
+          },
+        });
       }
     } finally {
       this.active.delete(job.id);
@@ -117,21 +127,19 @@ export class WorkerPool {
   }
 
   /** Register a callback to fire when a job completes or fails. */
-  onComplete(jobId: string, cb: (retryJob?: QueuedJob | null) => void): void {
+  onComplete(jobId: string, cb: (completion: JobCompletion) => void): void {
     this.onCompleteCallbacks.push({ jobId, cb });
   }
 
+  /** Remove a completion callback when dispatch fails before a job starts. */
   removeOnComplete(jobId: string): void {
-    const idx = this.onCompleteCallbacks.findIndex((c) => c.jobId === jobId);
-    if (idx !== -1) {
-      this.onCompleteCallbacks.splice(idx, 1);
-    }
+    this.onCompleteCallbacks = this.onCompleteCallbacks.filter((c) => c.jobId !== jobId);
   }
 
-  private fireOnComplete(jobId: string, retryJob?: QueuedJob | null): void {
+  private fireOnComplete(jobId: string, completion: JobCompletion): void {
     const idx = this.onCompleteCallbacks.findIndex((c) => c.jobId === jobId);
     if (idx !== -1) {
-      this.onCompleteCallbacks[idx].cb(retryJob);
+      this.onCompleteCallbacks[idx].cb(completion);
       this.onCompleteCallbacks.splice(idx, 1);
     }
   }

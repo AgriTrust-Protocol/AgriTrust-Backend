@@ -11,9 +11,10 @@
     "test:contract": "npx ts-node scripts/run-openapi-contract-tests.ts",
     "test:lock": "npx ts-node tests/integration/silo_lock_test.ts",
     "test:unit": "npx ts-node tests/unit/sensors.test.ts",
-    "migrate": "node -e \"require('./src/database/migrate')\"",
+    "migrate": "npx ts-node src/database/migrate.ts",
     "import:parcels": "npx ts-node src/cli/import_parcels.ts",
-    "performance:check": "npx ts-node scripts/check-performance-regression.ts"
+    "performance:check": "npx ts-node scripts/check-performance-regression.ts",
+    "security:deps": "npx ts-node scripts/dependency-vulnerability-scan.ts"
   },
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^15.4.0",
@@ -54,6 +55,7 @@
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3",
     "uuid": "^14.0.1",
-    "vitest": "^2.1.9"
+    "vitest": "^2.1.9",
+    "@vitest/coverage-v8": "2.1.9"
   }
 }

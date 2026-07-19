@@ -139,6 +139,7 @@ describe('WorkerPool', () => {
 
   it('times out a long-running job and handles internally', async () => {
     const pool = new WorkerPool(1);
+    const completion = vi.fn();
     const def: JobDef = {
       name: 'certificate_minting',
       priority: Priority.Critical,
@@ -151,6 +152,7 @@ describe('WorkerPool', () => {
     };
 
     // dispatch resolves — timeout is handled internally by retry/discard logic
+    pool.onComplete('timeout-job', completion);
     await pool.dispatch(
       {
         id: 'timeout-job',
@@ -164,6 +166,54 @@ describe('WorkerPool', () => {
     );
     // After timeout + discard, worker is freed
     expect(pool.activeCount).toBe(0);
+    expect(completion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'dead-letter',
+        deadLetterJob: expect.objectContaining({
+          id: 'timeout-job',
+          reason: 'timeout',
+          attempts: 1,
+        }),
+      }),
+    );
+  });
+
+  it('returns retry completion metadata before the retry limit is exhausted', async () => {
+    const pool = new WorkerPool(1);
+    const completion = vi.fn();
+    const def: JobDef = {
+      name: 'certificate_minting',
+      priority: Priority.Critical,
+      handler: async () => {
+        throw new Error('transient upstream failure');
+      },
+      maxConcurrency: 1,
+      timeoutMs: 5000,
+      resourceBudget: { maxConcurrency: 1, timeoutMs: 5000, retryLimit: 2 },
+    };
+
+    pool.onComplete('retry-job', completion);
+    await pool.dispatch(
+      {
+        id: 'retry-job',
+        type: 'certificate_minting',
+        priority: Priority.Critical,
+        payload: {},
+        submittedAt: Date.now(),
+        retryCount: 0,
+      },
+      def,
+    );
+
+    expect(completion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'retry',
+        retryJob: expect.objectContaining({
+          id: 'retry-job',
+          retryCount: 1,
+        }),
+      }),
+    );
   });
 
   it('hasCapacity returns false when pool is full', () => {
@@ -175,79 +225,5 @@ describe('WorkerPool', () => {
     const pool = new WorkerPool(5);
     pool.resize(10);
     expect(pool.capacity).toBe(10);
-  });
-});
-describe('Lease-based Scheduler', () => {
-  it('acks completed leased jobs', async () => {
-    const { Scheduler } = await import('../../src/job-queue/scheduler');
-    const registry = new JobRegistry();
-    registry.register('certificate_minting', async () => {});
-
-    const job: QueuedJob = {
-      id: 'leased-job-1',
-      type: 'certificate_minting',
-      priority: Priority.Critical,
-      payload: {},
-      submittedAt: Date.now(),
-      retryCount: 0,
-    };
-
-    const persistence = {
-      reclaimExpiredLeases: vi.fn().mockResolvedValue(0),
-      claimDue: vi.fn().mockResolvedValueOnce({
-        ...job,
-        leaseOwner: 'scheduler-test',
-        leaseExpiresAt: Date.now() + 60_000,
-      }).mockResolvedValue(null),
-      ack: vi.fn().mockResolvedValue(true),
-      releaseLease: vi.fn().mockResolvedValue(true),
-    };
-
-    const pool = new WorkerPool(1);
-    const scheduler = new Scheduler(
-      registry,
-      persistence as unknown as import('../../src/job-queue/persistence').JobQueuePersistence,
-      pool,
-      'scheduler-test',
-      60_000,
-    );
-
-    await (scheduler as unknown as { dispatchRound: () => Promise<void> }).dispatchRound();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    expect(persistence.claimDue).toHaveBeenCalledWith(Priority.Critical, 'scheduler-test', 60_000);
-    expect(persistence.ack).toHaveBeenCalledWith('leased-job-1', 'scheduler-test');
-    expect(persistence.releaseLease).not.toHaveBeenCalled();
-  });
-
-  it('fires retry callback payloads when a job exhausts a failed attempt', async () => {
-    const pool = new WorkerPool(1);
-    const retrySpy = vi.fn();
-    const def: JobDef = {
-      name: 'certificate_minting',
-      priority: Priority.Critical,
-      handler: async () => {
-        throw new Error('temporary failure');
-      },
-      maxConcurrency: 1,
-      timeoutMs: 5000,
-      resourceBudget: { maxConcurrency: 1, timeoutMs: 5000, retryLimit: 1 },
-    };
-    const job: QueuedJob = {
-      id: 'retry-job',
-      type: 'certificate_minting',
-      priority: Priority.Critical,
-      payload: {},
-      submittedAt: Date.now(),
-      retryCount: 0,
-    };
-
-    pool.onComplete(job.id, retrySpy);
-    await pool.dispatch(job, def);
-
-    expect(retrySpy).toHaveBeenCalledWith(expect.objectContaining({
-      id: 'retry-job',
-      retryCount: 1,
-    }));
   });
 });

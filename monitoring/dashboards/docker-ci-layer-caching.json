@@ -1,0 +1,26 @@
+{
+  "title": "Docker CI Layer Caching",
+  "panels": [
+    {
+      "title": "Docker build cache hit ratio",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "ci_docker_build_cache_hit_ratio{service=\"agritrust-backend\"}" }
+      ]
+    },
+    {
+      "title": "Docker build duration P95",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(ci_docker_build_duration_seconds_bucket{service=\"agritrust-backend\"}[30m])))" }
+      ]
+    },
+    {
+      "title": "Docker vulnerability scan failures",
+      "type": "stat",
+      "targets": [
+        { "expr": "sum(increase(ci_docker_security_scan_failures_total{service=\"agritrust-backend\"}[24h]))" }
+      ]
+    }
+  ]
+}
