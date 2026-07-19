@@ -52,6 +52,23 @@ export interface ActiveJob extends QueuedJob {
   workerId: string;
 }
 
+/** Reason a job moved to the dead letter queue. */
+export type DeadLetterReason = 'handler_error' | 'timeout' | 'unknown_type' | 'dispatch_rejected';
+
+/** A terminally failed job retained for inspection and replay. */
+export interface DeadLetterJob extends QueuedJob {
+  failedAt: number;
+  reason: DeadLetterReason;
+  errorMessage: string;
+  attempts: number;
+}
+
+/** Worker completion outcome used by the scheduler to retry or dead-letter. */
+export type JobCompletion =
+  | { status: 'succeeded' }
+  | { status: 'retry'; retryJob: QueuedJob; error: Error }
+  | { status: 'dead-letter'; deadLetterJob: DeadLetterJob };
+
 /** Admin-visible queue snapshot. */
 export interface QueueSnapshot {
   byPriority: Record<string, QueuedJob[]>;
@@ -73,3 +90,6 @@ export const DEFAULT_JOB_TIMEOUT_MS = 300_000;
 
 /** Max retries per job. */
 export const DEFAULT_RETRY_LIMIT = 2;
+
+/** Maximum dead-letter entries returned by admin APIs by default. */
+export const DEFAULT_DLQ_LIST_LIMIT = 100;

@@ -1,0 +1,55 @@
+groups:
+  - name: agritrust-slo-burn-rate
+    rules:
+      - record: agritrust:http_error_ratio:5m
+        expr: sum(rate(http_requests_total{status_code=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))
+      - record: agritrust:http_error_ratio:30m
+        expr: sum(rate(http_requests_total{status_code=~"5.."}[30m])) / sum(rate(http_requests_total[30m]))
+      - record: agritrust:http_error_ratio:1h
+        expr: sum(rate(http_requests_total{status_code=~"5.."}[1h])) / sum(rate(http_requests_total[1h]))
+      - record: agritrust:http_error_ratio:2h
+        expr: sum(rate(http_requests_total{status_code=~"5.."}[2h])) / sum(rate(http_requests_total[2h]))
+      - record: agritrust:http_error_ratio:6h
+        expr: sum(rate(http_requests_total{status_code=~"5.."}[6h])) / sum(rate(http_requests_total[6h]))
+      - record: agritrust:http_error_ratio:24h
+        expr: sum(rate(http_requests_total{status_code=~"5.."}[24h])) / sum(rate(http_requests_total[24h]))
+      - alert: AgriTrustAvailabilityFastBurn
+        expr: (agritrust:http_error_ratio:5m / 0.0001 > 14.4) and (agritrust:http_error_ratio:1h / 0.0001 > 14.4)
+        for: 2m
+        labels:
+          severity: page
+          service: agritrust-backend
+          slo: system_availability
+        annotations:
+          summary: AgriTrust availability SLO fast burn
+          description: 5m and 1h error-budget burn rates are above 14.4x for the 99.99% availability SLO.
+      - alert: AgriTrustAvailabilitySlowBurn
+        expr: (agritrust:http_error_ratio:30m / 0.0001 > 6) and (agritrust:http_error_ratio:6h / 0.0001 > 6)
+        for: 15m
+        labels:
+          severity: page
+          service: agritrust-backend
+          slo: system_availability
+        annotations:
+          summary: AgriTrust availability SLO slow burn
+          description: 30m and 6h error-budget burn rates are above 6x for the 99.99% availability SLO.
+      - alert: AgriTrustAvailabilityTicketBurn
+        expr: (agritrust:http_error_ratio:2h / 0.0001 > 3) and (agritrust:http_error_ratio:24h / 0.0001 > 3)
+        for: 30m
+        labels:
+          severity: ticket
+          service: agritrust-backend
+          slo: system_availability
+        annotations:
+          summary: AgriTrust availability SLO budget burn needs triage
+          description: 2h and 24h error-budget burn rates are above 3x; open an incident ticket before paging is required.
+      - alert: AgriTrustCriticalPathP99Latency
+        expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, route)) > 0.1
+        for: 10m
+        labels:
+          severity: page
+          service: agritrust-backend
+          slo: critical_path_latency
+        annotations:
+          summary: AgriTrust critical path p99 latency exceeds 100ms
+          description: A route is breaching the critical-path latency SLO; pause canaries or roll back the current deployment.

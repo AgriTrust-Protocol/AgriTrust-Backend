@@ -1,0 +1,24 @@
+groups:
+  - name: capacity-planning
+    rules:
+      - alert: CapacityCriticalNow
+        expr: capacity_planning_current_utilization_ratio >= 0.85
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: Service resource is above critical capacity utilization
+      - alert: CapacityCriticalWithin24Hours
+        expr: capacity_planning_hours_to_critical_threshold >= 0 and capacity_planning_hours_to_critical_threshold <= 24
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: Service resource is forecast to cross critical capacity within 24 hours
+      - alert: CapacityProjectedHigh
+        expr: capacity_planning_projected_utilization_ratio >= 0.7
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: Service resource is projected to exceed the planning warning threshold
