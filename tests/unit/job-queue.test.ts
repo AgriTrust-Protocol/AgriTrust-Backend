@@ -139,6 +139,7 @@ describe('WorkerPool', () => {
 
   it('times out a long-running job and handles internally', async () => {
     const pool = new WorkerPool(1);
+    const completion = vi.fn();
     const def: JobDef = {
       name: 'certificate_minting',
       priority: Priority.Critical,
@@ -151,6 +152,7 @@ describe('WorkerPool', () => {
     };
 
     // dispatch resolves — timeout is handled internally by retry/discard logic
+    pool.onComplete('timeout-job', completion);
     await pool.dispatch(
       {
         id: 'timeout-job',
@@ -164,6 +166,54 @@ describe('WorkerPool', () => {
     );
     // After timeout + discard, worker is freed
     expect(pool.activeCount).toBe(0);
+    expect(completion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'dead-letter',
+        deadLetterJob: expect.objectContaining({
+          id: 'timeout-job',
+          reason: 'timeout',
+          attempts: 1,
+        }),
+      }),
+    );
+  });
+
+  it('returns retry completion metadata before the retry limit is exhausted', async () => {
+    const pool = new WorkerPool(1);
+    const completion = vi.fn();
+    const def: JobDef = {
+      name: 'certificate_minting',
+      priority: Priority.Critical,
+      handler: async () => {
+        throw new Error('transient upstream failure');
+      },
+      maxConcurrency: 1,
+      timeoutMs: 5000,
+      resourceBudget: { maxConcurrency: 1, timeoutMs: 5000, retryLimit: 2 },
+    };
+
+    pool.onComplete('retry-job', completion);
+    await pool.dispatch(
+      {
+        id: 'retry-job',
+        type: 'certificate_minting',
+        priority: Priority.Critical,
+        payload: {},
+        submittedAt: Date.now(),
+        retryCount: 0,
+      },
+      def,
+    );
+
+    expect(completion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'retry',
+        retryJob: expect.objectContaining({
+          id: 'retry-job',
+          retryCount: 1,
+        }),
+      }),
+    );
   });
 
   it('hasCapacity returns false when pool is full', () => {

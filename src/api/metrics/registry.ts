@@ -39,4 +39,18 @@ export const rpcErrorTotal = new Counter({
   registers: [metricsRegistry],
 });
 
+export const jobDeadLetterTotal = new Counter({
+  name: 'job_dead_letter_total',
+  help: 'Total number of jobs written to the dead letter queue',
+  labelNames: ['type', 'reason'] as const,
+  registers: [metricsRegistry],
+});
+
+export const jobRetryTotal = new Counter({
+  name: 'job_retry_total',
+  help: 'Total number of job retry attempts scheduled after handler failure',
+  labelNames: ['type'] as const,
+  registers: [metricsRegistry],
+});
+
 export { metricsRegistry };
