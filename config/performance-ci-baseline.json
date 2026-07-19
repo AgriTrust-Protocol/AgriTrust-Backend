@@ -1,0 +1,25 @@
+{
+  "samples": [
+    {
+      "route": "/api/v1/batches",
+      "p99Ms": 75,
+      "errorRate": 0,
+      "availability": 1,
+      "sampleCount": 100
+    },
+    {
+      "route": "/api/v1/certificates",
+      "p99Ms": 80,
+      "errorRate": 0,
+      "availability": 1,
+      "sampleCount": 100
+    },
+    {
+      "route": "/metrics",
+      "p99Ms": 45,
+      "errorRate": 0,
+      "availability": 1,
+      "sampleCount": 100
+    }
+  ]
+}
