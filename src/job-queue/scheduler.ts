@@ -2,7 +2,7 @@ import {
   Priority,
   PRIORITY_WEIGHTS,
   TICK_INTERVAL_MS,
-  QueuedJob,
+  DEFAULT_JOB_LEASE_MS,
 } from './types';
 import { JobRegistry } from './job-registry';
 import { JobQueuePersistence } from './persistence';
@@ -23,15 +23,21 @@ export class Scheduler {
   private deficits: Record<number, number>;
   private tickTimer: ReturnType<typeof setInterval> | null = null;
   private running = false;
+  private readonly schedulerId: string;
+  private readonly leaseMs: number;
 
   constructor(
     registry: JobRegistry,
     persistence: JobQueuePersistence,
     workerPool: WorkerPool,
+    schedulerId = `scheduler-${process.pid}`,
+    leaseMs = DEFAULT_JOB_LEASE_MS,
   ) {
     this.registry = registry;
     this.persistence = persistence;
     this.workerPool = workerPool;
+    this.schedulerId = schedulerId;
+    this.leaseMs = leaseMs;
     this.deficits = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
   }
 
@@ -67,6 +73,7 @@ export class Scheduler {
     const sortedLevels = [5, 4, 3, 2, 1] as Priority[];
 
     for (const level of sortedLevels) {
+      await this.persistence.reclaimExpiredLeases(Date.now(), 25);
       const weight = PRIORITY_WEIGHTS[level];
       if (weight === 0) continue;
 
@@ -75,7 +82,7 @@ export class Scheduler {
 
       // Keep dispatching from this level until deficit runs dry.
       while (this.deficits[level] >= 1 && this.workerPool.hasCapacity()) {
-        const job = await this.persistence.dequeue(level);
+        const job = await this.persistence.claimDue(level, this.schedulerId, this.leaseMs);
         if (!job) break; // level empty
 
         this.deficits[level] -= 1;

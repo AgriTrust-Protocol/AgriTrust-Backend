@@ -44,6 +44,9 @@ export interface QueuedJob {
   payload: unknown;
   submittedAt: number; // unix ms
   retryCount: number;
+  leaseOwner?: string;
+  leaseExpiresAt?: number;
+  lastClaimedAt?: number;
 }
 
 /** An active (running) job. */
