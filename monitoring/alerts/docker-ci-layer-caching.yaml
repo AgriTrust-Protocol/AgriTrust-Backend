@@ -1,0 +1,21 @@
+groups:
+  - name: docker-ci-layer-caching
+    rules:
+      - alert: DockerCICacheMissRateHigh
+        expr: avg_over_time(ci_docker_build_cache_hit_ratio{service="agritrust-backend"}[30m]) < 0.60
+        for: 30m
+        labels:
+          severity: warning
+          service: agritrust-backend
+        annotations:
+          summary: Docker CI cache hit ratio is below target
+          description: Cache hit ratio has stayed below 60% for 30 minutes; inspect Buildx GHA and registry cache export health.
+      - alert: DockerCIBuildDurationHigh
+        expr: histogram_quantile(0.95, sum by (le) (rate(ci_docker_build_duration_seconds_bucket{service="agritrust-backend"}[30m]))) > 900
+        for: 30m
+        labels:
+          severity: warning
+          service: agritrust-backend
+        annotations:
+          summary: Docker CI build duration is above target
+          description: P95 Docker image build duration is above 15 minutes; check cache misses, npm registry latency, and GHCR availability.

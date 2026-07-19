@@ -11,11 +11,10 @@
     "test:contract": "npx ts-node scripts/run-openapi-contract-tests.ts",
     "test:lock": "npx ts-node tests/integration/silo_lock_test.ts",
     "test:unit": "npx ts-node tests/unit/sensors.test.ts",
-    "migrate": "node -e \"require('./src/database/migrate')\"",
+    "migrate": "npx ts-node src/database/migrate.ts",
     "import:parcels": "npx ts-node src/cli/import_parcels.ts",
     "performance:check": "npx ts-node scripts/check-performance-regression.ts",
-    "test:coverage": "vitest run --coverage",
-    "coverage:ci": "npm run test:coverage"
+    "security:deps": "npx ts-node scripts/dependency-vulnerability-scan.ts"
   },
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^15.4.0",
