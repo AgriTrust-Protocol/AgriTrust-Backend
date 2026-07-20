@@ -1,3 +1,30 @@
+// ─── Load .env file before anything else ──────────────────────────────────────
+try { require('dotenv').config(); } catch {}
+
+// ─── Configuration validation at startup ─────────────────────────────────────
+try {
+  const { configLoader } = require('./dist/src/config/loader');
+  const { collectConfigMetrics } = require('./dist/src/config/config-monitoring');
+  configLoader.load(); // validates all env vars, throws on failure
+  configLoader.startHotReload(); // watches config file for changes
+  if (typeof collectConfigMetrics === 'function') collectConfigMetrics();
+  console.log('[config] Configuration validated successfully');
+  console.log('[config] Hot-reload enabled');
+} catch (e1) {
+  try {
+    const { configLoader } = require('./src/config/loader');
+    const { collectConfigMetrics } = require('./src/config/config-monitoring');
+    configLoader.load();
+    configLoader.startHotReload();
+    if (typeof collectConfigMetrics === 'function') collectConfigMetrics();
+    console.log('[config] Configuration validated successfully');
+    console.log('[config] Hot-reload enabled');
+  } catch (err) {
+    console.error('[config] Configuration validation failed:', err.message);
+    process.exit(1);
+  }
+}
+
 const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
@@ -248,6 +275,21 @@ try {
 } catch (err) {
   console.warn('Job queue modules not found or failed to load. Skipping init.');
   console.warn(err instanceof Error ? err.message : String(err));
+}
+
+// ─── Configuration Management API ────────────────────────────────────────────
+// Admin endpoints for viewing, reloading, and validating config at runtime.
+// Sensitive values are redacted in responses.
+try {
+  const { createConfigRouter } = require('./dist/src/config/config-api');
+  app.use('/admin/config', createConfigRouter());
+} catch {
+  try {
+    const { createConfigRouter } = require('./src/config/config-api');
+    app.use('/admin/config', createConfigRouter());
+  } catch (err) {
+    console.warn('Config API router not available. Skipping mount.');
+  }
 }
 
 if (isMtlsEnabled) {
