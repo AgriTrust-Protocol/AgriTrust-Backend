@@ -1,0 +1,63 @@
+# Feature Flag Definitions — AgriTrust Backend
+# Each flag supports gradual rollout (1–100%), tenant/region/role targeting,
+# and an optional kill-switch (enabled: false).
+#
+# Schema per flag:
+#   key:               unique flag identifier (alphanumeric, hyphens, dots)
+#   enabled:           master kill-switch; false bypasses ALL other rules
+#   rolloutPercentage: 0–100 integer; deterministic hash-modulo per tenant
+#   payload:           arbitrary JSON-serialisable metadata (< 64 KB)
+#   variants:          optional list of variant labels for A/B tests
+#   targetingRules:    ordered list; first match wins
+#     - attribute: tenantId | region | agentRole | bucket
+#       operator:  eq | in | lt | lte | gt | gte
+#       value:     string or array
+
+flags:
+  - key: settlement.new-logic
+    enabled: true
+    rolloutPercentage: 10
+    payload:
+      version: 2
+      description: "New settlement logic with improved reconciliation"
+    variants:
+      - control
+      - treatment
+    targetingRules:
+      - attribute: agentRole
+        operator: eq
+        value: internal-tester
+      - attribute: region
+        operator: in
+        value:
+          - us-east-1
+          - eu-west-1
+
+  - key: attestation.workflow-v2
+    enabled: true
+    rolloutPercentage: 0
+    payload:
+      description: "Revamped attestation workflow"
+    variants: []
+    targetingRules: []
+
+  - key: certification.minting
+    enabled: true
+    rolloutPercentage: 100
+    payload: {}
+    variants: []
+    targetingRules: []
+
+  - key: telemetry.enrichment
+    enabled: true
+    rolloutPercentage: 100
+    payload: {}
+    variants: []
+    targetingRules: []
+
+  - key: webhook.delivery
+    enabled: true
+    rolloutPercentage: 100
+    payload: {}
+    variants: []
+    targetingRules: []
