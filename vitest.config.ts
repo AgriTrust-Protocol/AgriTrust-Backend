@@ -18,6 +18,7 @@ export default defineConfig({
         'src/**/tests/**',
         'src/database/migrations/**',
         'src/database/queries/**',
+        'src/db/**',
       ],
       thresholds: {
         lines: coverageThreshold,

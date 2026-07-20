@@ -8,6 +8,7 @@
     "start": "node index.js",
     "preflight": "npx ts-node src/cli/preflight_command.ts",
     "test": "npx vitest run",
+    "test:coverage": "npx vitest run --coverage",
     "test:contract": "npx ts-node scripts/run-openapi-contract-tests.ts",
     "test:lock": "npx ts-node tests/integration/silo_lock_test.ts",
     "test:unit": "npx ts-node tests/unit/sensors.test.ts",

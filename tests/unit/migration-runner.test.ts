@@ -2,18 +2,16 @@ import { mkdtemp, writeFile } from 'fs/promises';
 import os from 'os';
 import path from 'path';
 import { DataType, newDb } from 'pg-mem';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { MigrationJournal, MAX_UNDO_BLOCKS, MAX_UNDO_BLOCK_BYTES } from '../../src/db/migrations/journal';
 import { LockManager } from '../../src/db/migrations/lock-manager';
 import { MigrationRunner, MIGRATION_FILENAME_REGEX } from '../../src/db/migrations/runner';
-import { Migration } from '../../src/db/migrations/template';
 
-// ─── pg-mem factory ─────────────────────────────────────────────────────────
+// ─── pg-mem pool factory ─────────────────────────────────────────────────────
 
 async function makePool() {
   const db = newDb({ autoCreateForeignKeyIndices: true, noAstCoverageCheck: true } as any);
 
-  // Register PostgreSQL built-ins that pg-mem does not support natively.
   db.public.registerFunction({
     name: 'pg_advisory_xact_lock',
     args: [DataType.integer],
@@ -43,55 +41,12 @@ async function makePool() {
   return new Pool() as any;
 }
 
-// ─── Inline migration factory ────────────────────────────────────────────────
-
-/**
- * Creates a temporary directory and writes .ts-like migration stubs that the
- * runner can `require()`.  The stubs are actually .js CommonJS modules placed
- * with a .ts extension so ts-node is not needed during unit tests.
- *
- * Returns the directory path and a helper to add more migrations.
- */
-async function makeMigrationsDir(migrations: Array<{
-  filename: string;
-  migration: Migration;
-}>): Promise<string> {
-  const dir = await mkdtemp(path.join(os.tmpdir(), 'agritrust-runner-'));
-
-  for (const { filename, migration } of migrations) {
-    const src = `
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.up = async function(client) {
-  ${serializeQueries(migration.up)}
-};
-exports.down = async function(client) {
-  ${serializeQueries(migration.down)}
-};
-exports.transactional = ${migration.transactional};
-${migration.allowDdl !== undefined ? `exports.allowDdl = ${migration.allowDdl};` : ''}
-exports.affectedTables = ${JSON.stringify(migration.affectedTables)};
-`;
-    await writeFile(path.join(dir, filename), src, 'utf8');
-  }
-
-  return dir;
-}
-
-/** Minimal serialisation — just for test stubs. */
-function serializeQueries(fn: (client: any) => Promise<void>): string {
-  const body = fn.toString();
-  // Extract the async body between the first { and last }
-  const inner = body.slice(body.indexOf('{') + 1, body.lastIndexOf('}'));
-  return inner;
-}
-
 // ─── LockManager ─────────────────────────────────────────────────────────────
 
 describe('LockManager', () => {
   it('derives a stable non-negative key from table names', () => {
     const key1 = LockManager.deriveKey(['users', 'accounts']);
-    const key2 = LockManager.deriveKey(['accounts', 'users']); // order should not matter
+    const key2 = LockManager.deriveKey(['accounts', 'users']);
     expect(key1).toBe(key2);
     expect(key1).toBeGreaterThanOrEqual(0);
     expect(key1).toBeLessThanOrEqual(0x7fffffff);
@@ -278,7 +233,7 @@ describe('MigrationRunner.loadMigrationFiles', () => {
   it('returns an empty array when directory does not exist', async () => {
     const pool = await makePool();
     const runner = new MigrationRunner(pool, {
-      migrationsDir: path.join(os.tmpdir(), 'nonexistent_dir_agritrust'),
+      migrationsDir: path.join(os.tmpdir(), 'nonexistent_dir_agritrust_xyz123'),
     });
     const files = await runner.loadMigrationFiles();
     expect(files).toEqual([]);
@@ -291,8 +246,6 @@ describe('MigrationRunner.loadMigrationFiles', () => {
 describe('MigrationRunner.dryRun', () => {
   it('reports pending migrations without applying them', async () => {
     const pool = await makePool();
-
-    // Create a temp dir with one valid-named file (content irrelevant for dryRun).
     const dir = await mkdtemp(path.join(os.tmpdir(), 'agritrust-dryrun-'));
     await writeFile(path.join(dir, '20260720_100000_create_orders.ts'), '// stub');
 
@@ -318,7 +271,6 @@ describe('MigrationRunner.dryRun', () => {
     const filename = '20260720_110000_create_inventory.ts';
     await writeFile(path.join(dir, filename), '// stub');
 
-    // Pre-populate the journal with the same checksum the runner would compute.
     const { createHash } = await import('crypto');
     const checksum = createHash('md5').update(path.join(dir, filename)).digest('hex');
     await journal.append(client, {
@@ -334,28 +286,28 @@ describe('MigrationRunner.dryRun', () => {
     const runner = new MigrationRunner(pool, { migrationsDir: dir });
     const result = await runner.dryRun();
 
-    // Already applied — should NOT appear in the dry-run output.
     expect(result.applied.find((s) => s.version === '20260720_110000')).toBeUndefined();
     await pool.end();
   });
 });
 
-// ─── MigrationRunner — validate migration contract ───────────────────────────
+// ─── MigrationRunner — contract validation ───────────────────────────────────
 
 describe('MigrationRunner — migration contract validation', () => {
   it('rejects a migration missing the transactional flag', async () => {
     const pool = await makePool();
     const dir = await mkdtemp(path.join(os.tmpdir(), 'agritrust-validate-'));
 
-    // Write a JS module that exports an invalid migration (no transactional flag).
     const filename = '20260720_150000_missing_flag.ts';
+    // Write a plain JS CommonJS module; ts-node is not involved at runtime for require()
     await writeFile(
       path.join(dir, filename),
-      `"use strict";
-exports.up = async function() {};
-exports.down = async function() {};
-exports.affectedTables = ['x'];
-`,
+      [
+        '"use strict";',
+        'exports.up = async function() {};',
+        'exports.down = async function() {};',
+        'exports.affectedTables = ["x"];',
+      ].join('\n'),
     );
 
     const runner = new MigrationRunner(pool, { migrationsDir: dir });
@@ -370,12 +322,13 @@ exports.affectedTables = ['x'];
     const filename = '20260720_160000_missing_allow_ddl.ts';
     await writeFile(
       path.join(dir, filename),
-      `"use strict";
-exports.up = async function() {};
-exports.down = async function() {};
-exports.transactional = false;
-exports.affectedTables = ['y'];
-`,
+      [
+        '"use strict";',
+        'exports.up = async function() {};',
+        'exports.down = async function() {};',
+        'exports.transactional = false;',
+        'exports.affectedTables = ["y"];',
+      ].join('\n'),
     );
 
     const runner = new MigrationRunner(pool, { migrationsDir: dir });
@@ -390,16 +343,96 @@ exports.affectedTables = ['y'];
     const filename = '20260720_170000_empty_tables.ts';
     await writeFile(
       path.join(dir, filename),
-      `"use strict";
-exports.up = async function() {};
-exports.down = async function() {};
-exports.transactional = true;
-exports.affectedTables = [];
-`,
+      [
+        '"use strict";',
+        'exports.up = async function() {};',
+        'exports.down = async function() {};',
+        'exports.transactional = true;',
+        'exports.affectedTables = [];',
+      ].join('\n'),
     );
 
     const runner = new MigrationRunner(pool, { migrationsDir: dir });
     await expect(runner.migrate()).rejects.toThrow('affectedTables must be a non-empty array');
+    await pool.end();
+  });
+});
+
+// ─── MigrationRunner — migrate() (transactional) ─────────────────────────────
+
+describe('MigrationRunner.migrate', () => {
+  it('applies a transactional migration and records it in the journal', async () => {
+    const pool = await makePool();
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'agritrust-migrate-'));
+
+    const filename = '20260720_180000_create_items.ts';
+    await writeFile(
+      path.join(dir, filename),
+      [
+        '"use strict";',
+        'exports.transactional = true;',
+        'exports.affectedTables = ["items"];',
+        'exports.up = async function(client) {',
+        '  await client.query("CREATE TABLE items (id TEXT PRIMARY KEY)");',
+        '};',
+        'exports.down = async function(client) {',
+        '  await client.query("DROP TABLE IF EXISTS items");',
+        '};',
+      ].join('\n'),
+    );
+
+    const runner = new MigrationRunner(pool, { migrationsDir: dir });
+    const result = await runner.migrate();
+
+    expect(result.dryRun).toBe(false);
+    expect(result.applied).toHaveLength(1);
+    expect(result.applied[0].version).toBe('20260720_180000');
+    expect(result.applied[0].direction).toBe('up');
+    expect(result.applied[0].durationMs).toBeGreaterThanOrEqual(0);
+
+    // Verify the table was actually created
+    const res = await pool.query(
+      "SELECT table_name FROM information_schema.tables WHERE table_name = 'items'",
+    );
+    expect(res.rows).toHaveLength(1);
+
+    // Verify journal entry written
+    const client = await pool.connect();
+    const journal = new MigrationJournal();
+    const entries = await journal.listActive(client);
+    client.release();
+    expect(entries.find((e) => e.version === '20260720_180000')).toBeDefined();
+
+    await pool.end();
+  });
+
+  it('skips an already-applied migration (idempotency)', async () => {
+    const pool = await makePool();
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'agritrust-idempotent-'));
+
+    const filename = '20260720_190000_create_tags.ts';
+    await writeFile(
+      path.join(dir, filename),
+      [
+        '"use strict";',
+        'exports.transactional = true;',
+        'exports.affectedTables = ["tags"];',
+        'exports.up = async function(client) {',
+        '  await client.query("CREATE TABLE tags (id TEXT PRIMARY KEY)");',
+        '};',
+        'exports.down = async function(client) {',
+        '  await client.query("DROP TABLE IF EXISTS tags");',
+        '};',
+      ].join('\n'),
+    );
+
+    const runner = new MigrationRunner(pool, { migrationsDir: dir });
+    await runner.migrate();
+
+    // Second run — same migration should be skipped
+    const result2 = await runner.migrate();
+    expect(result2.applied).toHaveLength(0);
+
     await pool.end();
   });
 });
@@ -417,19 +450,20 @@ describe('MigrationRunner.rollbackTo', () => {
     await pool.end();
   });
 
-  it('rolls back all entries after the target version', async () => {
+  it('rolls back all entries after the target version using raw SQL undo blocks', async () => {
     const pool = await makePool();
     const client = await pool.connect();
     const journal = new MigrationJournal();
     await journal.ensureSchema(client);
 
-    // Seed two journal entries — the runner's rollbackTo will use their undo_sql.
-    // We use raw SQL undo blocks (not sentinels) so no file system is needed.
+    // Pre-create table so the DROP in undo_sql succeeds
+    await client.query('CREATE TABLE IF NOT EXISTS orders_rb (id TEXT PRIMARY KEY)');
+
     await journal.append(client, {
       checksum: 'chk1',
       version: '20260719_090000',
       name: 'create_users',
-      undoSql: 'DROP TABLE IF EXISTS users_rb;',
+      undoSql: 'SELECT 1',
       affectedTables: ['users_rb'],
       appliedAt: new Date('2026-07-19T09:00:00Z'),
     });
@@ -437,7 +471,7 @@ describe('MigrationRunner.rollbackTo', () => {
       checksum: 'chk2',
       version: '20260720_100000',
       name: 'create_orders',
-      undoSql: 'DROP TABLE IF EXISTS orders_rb;',
+      undoSql: 'DROP TABLE IF EXISTS orders_rb',
       affectedTables: ['orders_rb'],
       appliedAt: new Date('2026-07-20T10:00:00Z'),
     });
@@ -446,14 +480,13 @@ describe('MigrationRunner.rollbackTo', () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), 'agritrust-rollback2-'));
     const runner = new MigrationRunner(pool, { migrationsDir: dir });
 
-    // Roll back everything after '20260719_090000' — i.e. only '20260720_100000'.
+    // Roll back everything after '20260719_090000' — only '20260720_100000'
     const result = await runner.rollbackTo('20260719_090000');
 
     expect(result.applied).toHaveLength(1);
     expect(result.applied[0].version).toBe('20260720_100000');
     expect(result.applied[0].direction).toBe('down');
 
-    // Verify the first entry is still active.
     const clientCheck = await pool.connect();
     const remaining = await journal.listActive(clientCheck);
     clientCheck.release();
