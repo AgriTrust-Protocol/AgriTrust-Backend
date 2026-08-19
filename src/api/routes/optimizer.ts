@@ -76,7 +76,7 @@ export function createOptimizerRouter(): Router {
 
       // Validate node shapes
       for (const node of network.nodes) {
-        const n = node as Record<string, unknown>;
+        const n = node as unknown as Record<string, unknown>;
         if (
           typeof n.id !== 'string' ||
           typeof n.inventoryAvailable !== 'number' ||
@@ -88,15 +88,15 @@ export function createOptimizerRouter(): Router {
           });
           return;
         }
-        if (n.inventoryAvailable < 0 || n.capacity < 0) {
-          res.status(400).json({ error: `Node ${n.id}: inventoryAvailable and capacity must be non-negative` });
+        if ((n.inventoryAvailable as number) < 0 || (n.capacity as number) < 0) {
+          res.status(400).json({ error: `Node ${n.id as string}: inventoryAvailable and capacity must be non-negative` });
           return;
         }
       }
 
       // Validate edge shapes
       for (const edge of network.edges) {
-        const e = edge as Record<string, unknown>;
+        const e = edge as unknown as Record<string, unknown>;
         if (
           typeof e.from !== 'string' ||
           typeof e.to !== 'string' ||
@@ -109,9 +109,9 @@ export function createOptimizerRouter(): Router {
           });
           return;
         }
-        if (e.costPerTonKm < 0 || e.distanceKm < 0 || e.maxFlow < 0) {
+        if ((e.costPerTonKm as number) < 0 || (e.distanceKm as number) < 0 || (e.maxFlow as number) < 0) {
           res.status(400).json({
-            error: `Edge ${e.from}→${e.to}: costPerTonKm, distanceKm, and maxFlow must be non-negative`,
+            error: `Edge ${e.from as string}→${e.to as string}: costPerTonKm, distanceKm, and maxFlow must be non-negative`,
           });
           return;
         }

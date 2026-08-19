@@ -96,3 +96,6 @@ export const DEFAULT_RETRY_LIMIT = 2;
 
 /** Maximum dead-letter entries returned by admin APIs by default. */
 export const DEFAULT_DLQ_LIST_LIMIT = 100;
+
+/** Default job lease duration in ms before it is reclaimed. */
+export const DEFAULT_JOB_LEASE_MS = 30_000;
