@@ -3,6 +3,7 @@ import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
 import { Resource } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
+import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
 import * as grpc from '@grpc/grpc-js';
 import { tracingConfig } from '../config/tracing';
 import { logger } from '../logging/structured-logger';
@@ -20,6 +21,9 @@ export function setupTracing(serviceName: string) {
     spanProcessor: new BatchSpanProcessor(exporter, {
       scheduledDelayMillis: tracingConfig.batchIntervalMs,
     }) as never,
+    // Auto-instrument every PostgreSQL query so each DB call becomes a child
+    // span of the active request span (issue #177).
+    instrumentations: [new PgInstrumentation()],
   });
 
   try {

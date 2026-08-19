@@ -1,4 +1,44 @@
 import { xdr } from '@stellar/stellar-sdk';
+import { trace, SpanKind, SpanStatusCode } from '@opentelemetry/api';
+
+/**
+ * Wraps a Soroban JSON-RPC fetch in a `soroban_rpc_call` span (issue #177), so
+ * each RPC call becomes a child span of the active request span, with the RPC
+ * method and endpoint attached for latency decomposition in Jaeger/Tempo.
+ */
+async function tracedSorobanFetch(
+  rpcUrl: string,
+  rpcMethod: string,
+  init: RequestInit,
+): Promise<Response> {
+  const tracer = trace.getTracer('agritrust-soroban');
+  return tracer.startActiveSpan(
+    'soroban_rpc_call',
+    {
+      kind: SpanKind.CLIENT,
+      attributes: {
+        'rpc.system': 'soroban',
+        'rpc.method': rpcMethod,
+        'server.address': rpcUrl,
+      },
+    },
+    async (span) => {
+      try {
+        const response = await fetch(rpcUrl, init);
+        span.setAttribute('http.status_code', response.status);
+        if (!response.ok) {
+          span.setStatus({ code: SpanStatusCode.ERROR, message: `RPC returned ${response.status}` });
+        }
+        return response;
+      } catch (err) {
+        span.setStatus({ code: SpanStatusCode.ERROR, message: (err as Error).message });
+        throw err;
+      } finally {
+        span.end();
+      }
+    },
+  );
+}
 
 export interface HorizonLedger {
   sequence: number;
@@ -114,7 +154,7 @@ export class SorobanRpcClient {
     const timeout = setTimeout(() => controller.abort(), this.config.timeoutMs);
 
     try {
-      const response = await fetch(this.config.rpcUrl, {
+      const response = await tracedSorobanFetch(this.config.rpcUrl, 'simulateTransaction', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -191,7 +231,7 @@ export class SorobanSubmitter {
     const timeout = setTimeout(() => controller.abort(), this.config.timeoutMs);
 
     try {
-      const response = await fetch(this.config.rpcUrl, {
+      const response = await tracedSorobanFetch(this.config.rpcUrl, 'sendTransaction', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -234,7 +274,7 @@ export class SorobanSubmitter {
     const timeout = setTimeout(() => controller.abort(), this.config.timeoutMs);
 
     try {
-      const response = await fetch(this.config.rpcUrl, {
+      const response = await tracedSorobanFetch(this.config.rpcUrl, 'getTransaction', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
