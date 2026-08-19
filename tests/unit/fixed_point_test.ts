@@ -48,6 +48,26 @@ import {
 
 // ─── Arbitraries ──────────────────────────────────────────────────────────────
 
+/** Digit chars 0-9 as a constant arbitrary */
+const digitChar = fc.constantFrom('0', '1', '2', '3', '4', '5', '6', '7', '8', '9');
+/** Non-zero digit chars 1-9 as a constant arbitrary */
+const nonZeroDigitChar = fc.constantFrom('1', '2', '3', '4', '5', '6', '7', '8', '9');
+
+/** Build a string of digits using fc.array (replaces fc.stringOf which was removed in v4) */
+function digitString(min: number, max: number): fc.Arbitrary<string> {
+  return fc.array(digitChar, { minLength: min, maxLength: max }).map((chars) => chars.join(''));
+}
+
+/** Build a string of non-zero-leading digits */
+function nonZeroLeadingString(min: number, max: number): fc.Arbitrary<string> {
+  return fc
+    .tuple(
+      nonZeroDigitChar,
+      fc.array(digitChar, { minLength: Math.max(0, min - 1), maxLength: Math.max(0, max - 1) }),
+    )
+    .map(([first, rest]: [string, string[]]) => first + rest.join(''));
+}
+
 /**
  * Generate a decimal string with up to `maxInt` integer digits and
  * up to `maxFrac` fractional digits, optionally negative.
@@ -59,19 +79,12 @@ function decimalStringArb(
 ): fc.Arbitrary<string> {
   return fc
     .tuple(
-      fc.boolean(), // negative?
-      fc.stringOf(fc.constantFrom('0', '1', '2', '3', '4', '5', '6', '7', '8', '9'), {
-        minLength: 1,
-        maxLength: maxInt,
-      }),
-      fc.stringOf(fc.constantFrom('0', '1', '2', '3', '4', '5', '6', '7', '8', '9'), {
-        minLength: 0,
-        maxLength: maxFrac,
-      }),
+      fc.boolean(),
+      nonZeroLeadingString(1, maxInt),
+      digitString(0, maxFrac),
     )
-    .map(([neg, intPart, fracPart]) => {
-      const i = intPart.replace(/^0+/, '') || '0';
-      const result = fracPart.length > 0 ? `${i}.${fracPart}` : i;
+    .map(([neg, intPart, fracPart]: [boolean, string, string]) => {
+      const result = fracPart.length > 0 ? `${intPart}.${fracPart}` : intPart;
       return allowNegative && neg && result !== '0' ? `-${result}` : result;
     });
 }
@@ -82,16 +95,10 @@ function decimalStringArb(
 function positiveDecimalArb(maxInt = 6, maxFrac = 6): fc.Arbitrary<string> {
   return fc
     .tuple(
-      fc.stringOf(fc.constantFrom('1', '2', '3', '4', '5', '6', '7', '8', '9'), {
-        minLength: 1,
-        maxLength: maxInt,
-      }),
-      fc.stringOf(fc.constantFrom('0', '1', '2', '3', '4', '5', '6', '7', '8', '9'), {
-        minLength: 0,
-        maxLength: maxFrac,
-      }),
+      nonZeroLeadingString(1, maxInt),
+      digitString(0, maxFrac),
     )
-    .map(([intPart, fracPart]) => {
+    .map(([intPart, fracPart]: [string, string]) => {
       return fracPart.length > 0 ? `${intPart}.${fracPart}` : intPart;
     });
 }
