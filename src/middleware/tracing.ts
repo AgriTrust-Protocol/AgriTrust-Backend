@@ -1,22 +1,22 @@
 import { Request, Response, NextFunction } from 'express';
 import { TraceContext } from '../tracing/trace-context';
 import { BaggageManager } from '../tracing/baggage-manager';
-import { DeterministicSampler } from '../tracing/sampler';
+import { resolveSamplingProbability, sampleTraceId } from '../tracing/sampler';
 import { trace, context, SpanKind, SpanStatusCode } from '@opentelemetry/api';
 import { tracingConfig } from '../config/tracing';
 import { traceContextPropagationTotal, traceSpanDuration } from '../tracing/metrics';
 import { logger } from '../logging/structured-logger';
 
-const sampler = new DeterministicSampler(tracingConfig.samplingProbability);
-
 export function tracingMiddleware(req: Request, res: Response, next: NextFunction) {
   try {
     const traceParentHeader = req.header('traceparent');
     const baggageHeader = req.header('baggage');
+    const requestIdHeader = req.header('x-request-id');
 
     let traceId: string;
     let parentSpanId: string | undefined;
     let flags = 0;
+    let hasSampledParent = false;
 
     if (traceParentHeader) {
       const parsed = TraceContext.parseTraceParent(traceParentHeader);
@@ -25,17 +25,30 @@ export function tracingMiddleware(req: Request, res: Response, next: NextFunctio
         traceId = parsed.traceId;
         parentSpanId = parsed.parentId;
         flags = parseInt(parsed.traceFlags, 16);
+        hasSampledParent = (flags & 1) === 1;
       } else {
         traceContextPropagationTotal.inc({ direction: 'incoming', result: 'rejected' });
         traceId = TraceContext.generateTraceId();
       }
+    } else if (requestIdHeader) {
+      // Cargo edge scanners send X-Request-ID; map it to the trace-id so a
+      // scanner request correlates with its server-side trace (issue #177).
+      traceContextPropagationTotal.inc({ direction: 'incoming', result: 'request_id_mapped' });
+      traceId = TraceContext.traceIdFromRequestId(requestIdHeader);
     } else {
       traceContextPropagationTotal.inc({ direction: 'incoming', result: 'created' });
       traceId = TraceContext.generateTraceId();
     }
 
-    // Head-based sampling decision if not already sampled by parent
-    const shouldSample = sampler.shouldSample(traceId);
+    // ParentBased + route-based head sampling (issue #177): honour an upstream
+    // sampled decision; otherwise sample by route — 100% for /api/settlements/*,
+    // 1% for read-only GETs, configured default elsewhere.
+    const samplingProbability = resolveSamplingProbability(
+      req.method,
+      req.path,
+      tracingConfig.samplingProbability,
+    );
+    const shouldSample = hasSampledParent || sampleTraceId(traceId, samplingProbability);
     if (shouldSample) {
       flags = flags | 1;
     }
@@ -74,6 +87,9 @@ export function tracingMiddleware(req: Request, res: Response, next: NextFunctio
       attributes: {
         'http.method': req.method,
         'http.url': req.url,
+        'agritrust.route_name': req.path,
+        'agritrust.request_id': requestIdHeader,
+        'agritrust.sampling_probability': samplingProbability,
         'agritrust.tenant_id': baggageManager.get('agritrust.tenant-id') || req.header('x-tenant-id'),
         'agritrust.batch_id': baggageManager.get('agritrust.batch-id') || req.header('x-batch-id'),
       },
