@@ -1,5 +1,14 @@
 import Redis, { Redis as RedisClient } from 'ioredis';
 import { DeadLetterJob, QueuedJob, Priority, MAX_QUEUED_JOBS } from './types';
+import {
+  jobLeaseClaimDurationSeconds,
+  jobLeaseClaimsTotal,
+  jobLeasesActive,
+  jobLeaseReclaimsTotal,
+} from './metrics';
+
+/** Redis key for the lease sorted set (score = expiry unix ms). */
+const LEASE_ZSET_KEY = 'jobq:leases';
 
 /** Redis key prefix for priority sorted sets. */
 function priorityKey(p: Priority): string {
