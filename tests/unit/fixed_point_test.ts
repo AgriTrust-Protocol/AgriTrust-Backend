@@ -34,7 +34,6 @@ import {
   isZero,
   isNegative,
   INTERNAL_SCALE,
-  SOROBAN_SCALE,
   MathError,
 } from '../../src/utils/fixed_point';
 import {

@@ -1,6 +1,6 @@
 import { sorobanConfig } from '../config/soroban';
 import { HealthChecker, NodeStatus } from './health-checker';
-import { RpcPool, RpcNode } from './rpc-pool';
+import { RpcPool } from './rpc-pool';
 import { CircuitState } from './circuit-breaker';
 
 export interface AffinityKey {

@@ -8,7 +8,6 @@ import { ConnectivityMonitor } from '../../src/network/connectivity-monitor';
 import {
   SyncEngine,
   SyncTransport,
-  FlushResult,
 } from '../../src/attestation/sync-engine';
 import {
   AttestationRecord,

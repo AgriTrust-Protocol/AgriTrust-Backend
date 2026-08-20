@@ -1,5 +1,4 @@
 import type { ErrorObject } from 'ajv';
-import type { Request } from 'express';
 
 export interface OpenApiValidationErrorItem {
   message: string;

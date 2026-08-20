@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { SagaCoordinator, SagaDefinition } from '../../src/settlement/saga-coordinator';
 import { SagaLogStore } from '../../src/database/saga_log';
 import { ok, err, SagaStep } from '../../src/settlement/saga-step';

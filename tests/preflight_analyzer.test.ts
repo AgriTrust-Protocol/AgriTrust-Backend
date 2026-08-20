@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { PreflightAnalyzer } from '../src/blockchain/preflight_analyzer';
-import { SorobanRpcClient, RawSimulationResult, SorobanRpcConfig } from '../src/blockchain/soroban_bridge';
+import { SorobanRpcClient, RawSimulationResult } from '../src/blockchain/soroban_bridge';
 import { TxBuilder } from '../src/blockchain/tx_builder';
-import { PreflightOptions, PreflightResult, ResourceFootprint } from '../src/blockchain/types';
+import { PreflightOptions, ResourceFootprint } from '../src/blockchain/types';
 
 class MockSorobanRpcClient extends SorobanRpcClient {
   private mockResult: RawSimulationResult | null = null;

@@ -3,7 +3,6 @@ import { Transform, TransformCallback } from 'stream';
 import { SlidingWindowBuffer, TelemetryFrame } from './buffer_manager';
 import { backpressure, BackpressureLevel } from './backpressure';
 import { RateLimiter } from '../api/middleware/rate_limit';
-import { DeviceProfileStore } from '../devices/profile_store';
 
 const DEFAULT_PORT = 4000;
 

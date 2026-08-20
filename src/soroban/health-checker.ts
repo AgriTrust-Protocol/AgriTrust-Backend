@@ -1,5 +1,4 @@
 import { RingBuffer } from '../websocket/ring-buffer';
-import { sorobanConfig } from '../config/soroban';
 import { rpcPoolSize, rpcRequestDurationMs, rpcErrorTotal } from '../api/metrics/registry';
 
 export enum NodeStatus {
