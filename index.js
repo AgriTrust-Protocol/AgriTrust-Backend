@@ -71,8 +71,7 @@ try {
 app.use(metricsMiddleware);
 
 // ─── Mount Canary Middleware & Admin Routing Elements ─────────────────────────
-app.use(AdminExperimentRouter); // Registers /admin/experiments routes
-app.use(experimentMiddleware);  // Intercepts and flags incoming traffic properties
+
 
 app.get('/', (req, res) => {
   res.json({ 
