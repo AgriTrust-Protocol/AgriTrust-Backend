@@ -15,10 +15,10 @@ import { describe, it, expect } from 'vitest';
 import { randomBytes } from 'node:crypto';
 import { generateRangeProof, verifyRangeProof } from '../../src/crypto/zk_provenance';
 import { commit, verifyCommitment } from '../../src/crypto/commitment_scheme';
-import type { RangeProof, PedersenCommitment, Opening, SupplyLogBatch } from '../../src/crypto/types';
+import type { RangeProof, Opening, SupplyLogBatch } from '../../src/crypto/types';
 import { ZKError, DIMENSION_IDS } from '../../src/crypto/types';
 import type { CertificationDimension } from '../../src/crypto/types';
-import { processBatch, generateBatchProof, DIMENSION_RANGES, REQUIRED_DIMENSIONS } from '../../src/core/provenance/batch_processor';
+import { processBatch, generateBatchProof } from '../../src/core/provenance/batch_processor';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

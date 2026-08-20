@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { TransactionCoordinator } from '../../src/core/state/transaction_controller';
-import { PendingStore, PendingTransactionRow, PendingTxStatus } from '../../src/core/state/pending_store';
+import { PendingStore, PendingTransactionRow } from '../../src/core/state/pending_store';
 import { RecoveryWorker } from '../../src/core/state/recovery_worker';
 import {
   SorobanSubmitter,

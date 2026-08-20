@@ -12,7 +12,7 @@
  *  - Deferral threshold and force-settlement after max deferred periods
  */
 
-import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   NettingEngine,
@@ -45,7 +45,6 @@ import {
   RollbackManager,
   SwiftReversal,
   BlockchainReversal,
-  SettlementLeg,
 } from '../../src/settlement/rollback_manager';
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────

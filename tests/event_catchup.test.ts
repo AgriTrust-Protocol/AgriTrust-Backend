@@ -1,8 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { EventCatchupWorker, HealthCheckResult } from '../src/blockchain/event_catchup';
+import { HealthCheckResult } from '../src/blockchain/event_catchup';
 import { SorobanBridge, HorizonLedger, HorizonEffect } from '../src/blockchain/soroban_bridge';
-import { EventProcessor } from '../src/blockchain/event_processor';
-import { Pool } from 'pg';
 
 class MockBridge extends SorobanBridge {
   private ledgers: Map<number, HorizonLedger> = new Map();

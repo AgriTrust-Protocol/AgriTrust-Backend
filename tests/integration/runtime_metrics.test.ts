@@ -18,7 +18,6 @@ import {
   stopCollecting,
   resetMetrics,
   getRuntimeMetricsText,
-  runtimeRegistry,
 } from '../../src/api/metrics/runtime_metrics';
 
 // ─── Test Server ────────────────────────────────────────────────────────────
