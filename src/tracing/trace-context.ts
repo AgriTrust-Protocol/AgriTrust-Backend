@@ -18,6 +18,22 @@ export class TraceContext {
     return crypto.randomBytes(8).toString('hex');
   }
 
+  /**
+   * Maps a cargo edge scanner's `X-Request-ID` to a valid W3C trace-id (32
+   * lowercase hex, non-zero). If the id is already a 32-hex value it is used
+   * directly; otherwise it is hashed (sha256, first 16 bytes) so the same
+   * request id always resolves to the same trace-id — letting operators
+   * correlate a scanner request with its server-side trace.
+   */
+  static traceIdFromRequestId(requestId: string): string {
+    const normalized = requestId.trim().toLowerCase();
+    if (/^[0-9a-f]{32}$/.test(normalized) && normalized !== '00000000000000000000000000000000') {
+      return normalized;
+    }
+    // sha256 of a non-empty string is never all-zero, so this is always valid.
+    return crypto.createHash('sha256').update(requestId).digest('hex').slice(0, 32);
+  }
+
   static parseTraceParent(header: string): TraceParent | null {
     const match = header.match(this.TRACEPARENT_REGEX);
     if (!match) return null;
