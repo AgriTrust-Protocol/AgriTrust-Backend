@@ -23,7 +23,7 @@ describe('staging chaos testing blueprint', () => {
       availabilityTarget: 0.99,
       requiredSecurityReview: false,
       steadyStateObjectives: [],
-      experiments: [{ ...stagingChaosBlueprint.experiments[0], abortConditions: [], durationMinutes: 0, runbook: 'README.md' }],
+      experiments: [{ ...stagingChaosBlueprint.experiments[0], abortConditions: [], durationMinutes: 0, runbook: 'BACKEND.md' }],
     };
 
     expect(validateChaosBlueprint(invalid)).toEqual(expect.arrayContaining([
