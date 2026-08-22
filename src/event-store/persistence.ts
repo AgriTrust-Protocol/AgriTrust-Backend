@@ -34,11 +34,7 @@ export interface EventPersistence {
     events: NewEvent[],
     expectedVersion: number,
   ): Promise<StreamEvent[]>;
-  readStreamEvents(
-    streamId: string,
-    afterVersion: number,
-    limit: number,
-  ): Promise<StreamEvent[]>;
+  readStreamEvents(streamId: string, afterVersion: number, limit: number): Promise<StreamEvent[]>;
   saveSnapshot(streamId: string, version: number, snapshot: Buffer): Promise<void>;
   getLatestSnapshot(streamId: string): Promise<SnapshotRow | null>;
 }
@@ -102,12 +98,7 @@ export class PgEventPersistence implements EventPersistence {
           throw new ConcurrencyConflictError(streamId, expectedVersion, current);
         }
 
-        const appended = await this.insertBatch(
-          client,
-          streamId,
-          events,
-          expectedVersion,
-        );
+        const appended = await this.insertBatch(client, streamId, events, expectedVersion);
 
         await client.query('COMMIT');
         return appended;
@@ -143,11 +134,7 @@ export class PgEventPersistence implements EventPersistence {
     });
   }
 
-  async saveSnapshot(
-    streamId: string,
-    version: number,
-    snapshot: Buffer,
-  ): Promise<void> {
+  async saveSnapshot(streamId: string, version: number, snapshot: Buffer): Promise<void> {
     await this.pool.query(
       `INSERT INTO snapshots (stream_id, version, snapshot)
        VALUES ($1, $2, $3)
@@ -178,10 +165,7 @@ export class PgEventPersistence implements EventPersistence {
   // ── archival helpers (used by ColdStorageArchiver) ──────────────────────
 
   /** Reads a page of events older than `cutoff` that have not been archived. */
-  async readEventsOlderThan(
-    cutoff: Date,
-    limit: number,
-  ): Promise<ArchivableEvent[]> {
+  async readEventsOlderThan(cutoff: Date, limit: number): Promise<ArchivableEvent[]> {
     const res = await this.pool.query(
       `SELECT global_seq, stream_id, stream_version, event_type, data, metadata, created_at
          FROM events
@@ -214,10 +198,7 @@ export class PgEventPersistence implements EventPersistence {
 
   // ── internals ────────────────────────────────────────────────────────────
 
-  private async currentVersionTx(
-    client: PoolClient,
-    streamId: string,
-  ): Promise<number> {
+  private async currentVersionTx(client: PoolClient, streamId: string): Promise<number> {
     const res = await client.query(
       `SELECT COALESCE(MAX(stream_version), 0)::int AS version
          FROM events WHERE stream_id = $1`,
@@ -268,11 +249,7 @@ export class PgEventPersistence implements EventPersistence {
   }
 
   private isUniqueViolation(err: unknown): boolean {
-    return (
-      typeof err === 'object' &&
-      err !== null &&
-      (err as { code?: string }).code === '23505'
-    );
+    return typeof err === 'object' && err !== null && (err as { code?: string }).code === '23505';
   }
 }
 
@@ -285,8 +262,6 @@ function mapRow(row: any): StreamEvent {
     data: row.data ?? {},
     metadata: row.metadata ?? {},
     createdAt:
-      row.created_at instanceof Date
-        ? row.created_at.toISOString()
-        : String(row.created_at),
+      row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
   };
 }

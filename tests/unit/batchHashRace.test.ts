@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createHash } from 'crypto';
-import { sha256hex, validateBatchData, type BatchDataPayload } from '../../src/validation/batchIntegrity';
+import {
+  sha256hex,
+  validateBatchData,
+  type BatchDataPayload,
+} from '../../src/validation/batchIntegrity';
 import { verifyBatchHash, finaliseIntegrityHash } from '../../src/certification/hashVerifier';
 import type { Pool, PoolClient, QueryResult, QueryConfig, QueryConfigValues } from 'pg';
 
@@ -9,7 +13,11 @@ import type { Pool, PoolClient, QueryResult, QueryConfig, QueryConfigValues } fr
 // Advisory locks and SELECT FOR UPDATE are no-ops; the lock semantics are
 // proven correct by the sequential ordering the fake enforces.
 
-interface HashLogRow { batch_id: string; source: string; source_hash: string; }
+interface HashLogRow {
+  batch_id: string;
+  source: string;
+  source_hash: string;
+}
 
 function makePool(
   batches: Map<string, { integrity_hash: string | null }>,
@@ -19,7 +27,10 @@ function makePool(
   // the fake's in-memory state is never corrupted by JS micro-task interleaving.
   let lock = Promise.resolve();
 
-  function normalizeQuery(query: string | QueryConfig, values?: QueryConfigValues<unknown[]>): { sql: string; params?: unknown[] } {
+  function normalizeQuery(
+    query: string | QueryConfig,
+    values?: QueryConfigValues<unknown[]>,
+  ): { sql: string; params?: unknown[] } {
     return typeof query === 'string'
       ? { sql: query, params: values as unknown[] | undefined }
       : { sql: query.text, params: query.values as unknown[] | undefined };
@@ -27,7 +38,10 @@ function makePool(
 
   function makeClient(): PoolClient {
     const client: Partial<PoolClient> = {
-      query: (async (query: string | QueryConfig, values?: QueryConfigValues<unknown[]>): Promise<QueryResult<any>> => {
+      query: (async (
+        query: string | QueryConfig,
+        values?: QueryConfigValues<unknown[]>,
+      ): Promise<QueryResult<any>> => {
         const { sql, params } = normalizeQuery(query, values);
         // Wrap every statement in the serialize lock.
         const result = await new Promise<QueryResult<any>>((resolve) => {
@@ -80,7 +94,10 @@ function makePool(
 
   const pool: Partial<Pool> = {
     connect: async () => makeClient(),
-    query: (async (query: string | QueryConfig, values?: QueryConfigValues<unknown[]>): Promise<QueryResult<any>> => {
+    query: (async (
+      query: string | QueryConfig,
+      values?: QueryConfigValues<unknown[]>,
+    ): Promise<QueryResult<any>> => {
       // Direct pool.query used by hashVerifier
       const client = makeClient();
       return client.query(query, values);

@@ -32,7 +32,7 @@ export const ledgerSequenceGauge = new Gauge({
 // ─── Internal State ─────────────────────────────────────────────────────────
 
 let lastConfirmedAt: Date | null = null;
-let lastSequence: number = 0;
+let lastSequence = 0;
 
 // ─── Public API ─────────────────────────────────────────────────────────────
 

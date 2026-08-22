@@ -25,14 +25,14 @@ class MemoryHashRedis implements RedisHashClient {
 
 describe('ConfigStore', () => {
   let engine: FeatureEngine;
-  let redis:  MemoryHashRedis;
-  let store:  ConfigStore;
+  let redis: MemoryHashRedis;
+  let store: ConfigStore;
 
   beforeEach(async () => {
     engine = new FeatureEngine();
-    redis  = new MemoryHashRedis();
+    redis = new MemoryHashRedis();
     // Pass explicit yaml path pointing to the project config
-    store  = new ConfigStore(engine, redis, `${process.cwd()}/src/config/flags.yaml`);
+    store = new ConfigStore(engine, redis, `${process.cwd()}/src/config/flags.yaml`);
     await store.initialize();
     store.stop();
   });
@@ -40,18 +40,18 @@ describe('ConfigStore', () => {
   it('loads default flags from YAML on initialize', () => {
     const flags = engine.listFlags();
     expect(flags.length).toBeGreaterThan(0);
-    const keys = flags.map(f => f.key);
+    const keys = flags.map((f) => f.key);
     expect(keys).toContain('certification.minting');
   });
 
   it('upserts a flag and persists to Redis', async () => {
     await store.upsertFlag({
-      key:               'new-flag',
-      enabled:           true,
+      key: 'new-flag',
+      enabled: true,
       rolloutPercentage: 25,
-      targetingRules:    [],
-      payload:           {},
-      variants:          [],
+      targetingRules: [],
+      payload: {},
+      variants: [],
     });
     const stored = await store.getFlag('new-flag');
     expect(stored).not.toBeNull();
@@ -60,20 +60,24 @@ describe('ConfigStore', () => {
 
   it('updates existing flag in engine after upsert', async () => {
     await store.upsertFlag({
-      key:               'certification.minting',
-      enabled:           false,
+      key: 'certification.minting',
+      enabled: false,
       rolloutPercentage: 0,
-      targetingRules:    [],
-      payload:           {},
-      variants:          [],
+      targetingRules: [],
+      payload: {},
+      variants: [],
     });
     expect(engine.getFlag('certification.minting')?.enabled).toBe(false);
   });
 
   it('deletes a flag from engine and Redis', async () => {
     await store.upsertFlag({
-      key: 'temp-flag', enabled: true, rolloutPercentage: 100,
-      targetingRules: [], payload: {}, variants: [],
+      key: 'temp-flag',
+      enabled: true,
+      rolloutPercentage: 100,
+      targetingRules: [],
+      payload: {},
+      variants: [],
     });
     const existed = await store.deleteFlag('temp-flag');
     expect(existed).toBe(true);
@@ -86,25 +90,45 @@ describe('ConfigStore', () => {
   });
 
   it('rejects flags with invalid key characters', async () => {
-    await expect(store.upsertFlag({
-      key: 'bad key!', enabled: true, rolloutPercentage: 50,
-      targetingRules: [], payload: {}, variants: [],
-    })).rejects.toThrow('Invalid flag key');
+    await expect(
+      store.upsertFlag({
+        key: 'bad key!',
+        enabled: true,
+        rolloutPercentage: 50,
+        targetingRules: [],
+        payload: {},
+        variants: [],
+      }),
+    ).rejects.toThrow('Invalid flag key');
   });
 
   it('rejects rolloutPercentage out of range', async () => {
-    await expect(store.upsertFlag({
-      key: 'valid-key', enabled: true, rolloutPercentage: 150,
-      targetingRules: [], payload: {}, variants: [],
-    })).rejects.toThrow('rolloutPercentage');
+    await expect(
+      store.upsertFlag({
+        key: 'valid-key',
+        enabled: true,
+        rolloutPercentage: 150,
+        targetingRules: [],
+        payload: {},
+        variants: [],
+      }),
+    ).rejects.toThrow('rolloutPercentage');
   });
 
   it('resyncs engine state from Redis on syncFromRedis', async () => {
     // Write directly to Redis, bypassing engine
-    await redis.hset('feature-flags:store', 'direct-flag', JSON.stringify({
-      key: 'direct-flag', enabled: true, rolloutPercentage: 10,
-      targetingRules: [], payload: {}, variants: [],
-    }));
+    await redis.hset(
+      'feature-flags:store',
+      'direct-flag',
+      JSON.stringify({
+        key: 'direct-flag',
+        enabled: true,
+        rolloutPercentage: 10,
+        targetingRules: [],
+        payload: {},
+        variants: [],
+      }),
+    );
     await store.syncFromRedis();
     expect(engine.getFlag('direct-flag')?.rolloutPercentage).toBe(10);
   });

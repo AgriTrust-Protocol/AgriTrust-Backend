@@ -8,7 +8,7 @@ export class KeyRotationOrchestrator {
 
   constructor(
     private readonly keyStore: PgKeyStore,
-    private readonly pool: Pool
+    private readonly pool: Pool,
   ) {}
 
   public start(): void {
@@ -49,7 +49,9 @@ export class KeyRotationOrchestrator {
         await client.query('SELECT pg_advisory_unlock($1)', [lockKey]);
         console.log('[KeyRotationOrchestrator] Rotation complete and lock released.');
       } else {
-        console.log('[KeyRotationOrchestrator] Rotation lock already held by another instance. Skipping.');
+        console.log(
+          '[KeyRotationOrchestrator] Rotation lock already held by another instance. Skipping.',
+        );
       }
     } finally {
       client.release();
@@ -57,11 +59,7 @@ export class KeyRotationOrchestrator {
   }
 
   public async rotateAllPurposes(): Promise<void> {
-    const purposes = [
-      KeyPurpose.ATTESTATION,
-      KeyPurpose.CERTIFICATES,
-      KeyPurpose.WEBHOOK,
-    ];
+    const purposes = [KeyPurpose.ATTESTATION, KeyPurpose.CERTIFICATES, KeyPurpose.WEBHOOK];
 
     for (const purpose of purposes) {
       await this.rotateKey(purpose);
@@ -93,7 +91,9 @@ export class KeyRotationOrchestrator {
 
     const duration = Date.now() - startTime;
     if (duration > 100) {
-      console.warn(`[KeyRotationOrchestrator] Key generation for ${purpose} took ${duration}ms (target < 100ms)`);
+      console.warn(
+        `[KeyRotationOrchestrator] Key generation for ${purpose} took ${duration}ms (target < 100ms)`,
+      );
     }
 
     return newKey;
@@ -120,13 +120,17 @@ export class KeyRotationOrchestrator {
       }
 
       if (type === KeyType.ED25519) {
-        crypto.generateKeyPair('ed25519', {}, (err: Error | null, publicKey: crypto.KeyObject, privateKey: crypto.KeyObject) => {
-          if (err) return reject(err);
-          resolve({
-            publicKey: publicKey.export({ type: 'spki', format: 'pem' }) as string,
-            privateKey: privateKey.export({ type: 'pkcs8', format: 'pem' }) as string,
-          });
-        });
+        crypto.generateKeyPair(
+          'ed25519',
+          {},
+          (err: Error | null, publicKey: crypto.KeyObject, privateKey: crypto.KeyObject) => {
+            if (err) return reject(err);
+            resolve({
+              publicKey: publicKey.export({ type: 'spki', format: 'pem' }) as string,
+              privateKey: privateKey.export({ type: 'pkcs8', format: 'pem' }) as string,
+            });
+          },
+        );
       } else if (type === KeyType.ECDSA_P256) {
         crypto.generateKeyPair('ec', { namedCurve: 'P-256' }, (err, publicKey, privateKey) => {
           if (err) return reject(err);

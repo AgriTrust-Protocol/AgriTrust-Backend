@@ -34,7 +34,7 @@ export function resolveSamplingProbability(
 export class DeterministicSampler {
   private readonly probability: number;
 
-  constructor(probability: number = 0.8) {
+  constructor(probability = 0.8) {
     this.probability = Math.max(0, Math.min(1, probability));
   }
 

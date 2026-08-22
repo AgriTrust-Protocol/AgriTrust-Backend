@@ -27,7 +27,10 @@ async function tracedSorobanFetch(
         const response = await fetch(rpcUrl, init);
         span.setAttribute('http.status_code', response.status);
         if (!response.ok) {
-          span.setStatus({ code: SpanStatusCode.ERROR, message: `RPC returned ${response.status}` });
+          span.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: `RPC returned ${response.status}`,
+          });
         }
         return response;
       } catch (err) {
@@ -78,10 +81,9 @@ export class SorobanBridge {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), this.config.timeoutMs);
 
-        const response = await fetch(
-          `${this.config.horizonUrl}/ledgers/${sequence}`,
-          { signal: controller.signal },
-        );
+        const response = await fetch(`${this.config.horizonUrl}/ledgers/${sequence}`, {
+          signal: controller.signal,
+        });
         clearTimeout(timeout);
 
         if (response.status === 404) return null;
@@ -111,10 +113,9 @@ export class SorobanBridge {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), this.config.timeoutMs);
 
-      const response = await fetch(
-        `${this.config.horizonUrl}/ledgers/${sequence}/effects`,
-        { signal: controller.signal },
-      );
+      const response = await fetch(`${this.config.horizonUrl}/ledgers/${sequence}/effects`, {
+        signal: controller.signal,
+      });
       clearTimeout(timeout);
 
       if (!response.ok) return [];
@@ -302,9 +303,13 @@ export class SorobanSubmitter {
 
       const s = json.result.status;
       const status: SorobanTxStatus['status'] =
-        s === 'SUCCESS' ? 'SUCCESS' :
-        s === 'FAILED' ? 'FAILED' :
-        s === 'NOT_FOUND' ? 'NOT_FOUND' : 'PENDING';
+        s === 'SUCCESS'
+          ? 'SUCCESS'
+          : s === 'FAILED'
+            ? 'FAILED'
+            : s === 'NOT_FOUND'
+              ? 'NOT_FOUND'
+              : 'PENDING';
 
       return {
         status,
@@ -322,8 +327,8 @@ export class SorobanSubmitter {
    */
   async submitAndConfirm(
     signedXdr: string,
-    timeoutMs: number = 30_000,
-    pollIntervalMs: number = 2_000,
+    timeoutMs = 30_000,
+    pollIntervalMs = 2_000,
   ): Promise<SorobanSubmitResult> {
     const submission = await this.submitTransaction(signedXdr);
     if (submission.status === 'failed') {

@@ -43,24 +43,26 @@ export class RpcLoadBalancer {
   }
 
   public async reportResult(nodeUrl: string, success: boolean): Promise<void> {
-    const node = this.pool.getNodes().find(n => n.url === nodeUrl);
+    const node = this.pool.getNodes().find((n) => n.url === nodeUrl);
     if (!node) return;
 
     if (success) {
-        // We can't easily call onSuccess without executing something,
-        // but we can simulate it by wrapping a no-op if the breaker allowed it.
-        await node.circuitBreaker.execute(async () => {});
+      // We can't easily call onSuccess without executing something,
+      // but we can simulate it by wrapping a no-op if the breaker allowed it.
+      await node.circuitBreaker.execute(async () => {});
     } else {
-        await node.circuitBreaker.execute(async () => {
-            throw new Error('Remote call failed');
-        }).catch(() => {});
+      await node.circuitBreaker
+        .execute(async () => {
+          throw new Error('Remote call failed');
+        })
+        .catch(() => {});
 
-        // If the circuit breaker is now OPEN, mark the node as DEGRADED
-        if (node.circuitBreaker.getState() === CircuitState.OPEN) {
-            this.healthChecker.recordCheck(nodeUrl, false);
-            this.healthChecker.recordCheck(nodeUrl, false);
-            this.healthChecker.recordCheck(nodeUrl, false);
-        }
+      // If the circuit breaker is now OPEN, mark the node as DEGRADED
+      if (node.circuitBreaker.getState() === CircuitState.OPEN) {
+        this.healthChecker.recordCheck(nodeUrl, false);
+        this.healthChecker.recordCheck(nodeUrl, false);
+        this.healthChecker.recordCheck(nodeUrl, false);
+      }
     }
   }
 
@@ -89,7 +91,7 @@ export class RpcLoadBalancer {
           const steps = Math.floor(elapsed / recoveryStepMs);
           const recoveryFactor = Math.min(
             sorobanConfig.weights.initialRecoveryWeight * Math.pow(2, steps),
-            1.0
+            1.0,
           );
 
           if (recoveryFactor >= 1.0 && elapsed >= sorobanConfig.recoveryDurationMs) {

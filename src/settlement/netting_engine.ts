@@ -10,12 +10,7 @@
 
 export type SupportedCurrency = 'USD' | 'EUR' | 'NGN' | 'KES';
 
-export type CurrencyPair =
-  | 'USD/EUR'
-  | 'USD/NGN'
-  | 'USD/KES'
-  | 'EUR/NGN'
-  | 'EUR/KES';
+export type CurrencyPair = 'USD/EUR' | 'USD/NGN' | 'USD/KES' | 'EUR/NGN' | 'EUR/KES';
 
 export type NettingAlgorithm = 'bilateral' | 'multilateral' | 'ccp';
 
@@ -177,10 +172,7 @@ export class NettingEngine {
    * Entry point: run the full netting pipeline for a batch of pending
    * settlements and the TWAP FX rates for the period.
    */
-  computeNetting(
-    settlements: PendingSettlement[],
-    fxRates: FxRates,
-  ): NettingResult {
+  computeNetting(settlements: PendingSettlement[], fxRates: FxRates): NettingResult {
     if (settlements.length === 0) {
       return {
         period: periodForTimestamp(new Date(), 'default'),
@@ -207,11 +199,7 @@ export class NettingEngine {
       const ccpPositions = this.ccpNetting(multilateralPositions, fxRates);
 
       // Step 4: threshold and deferral logic
-      const { settled, deferred, forced } = this.applyThreshold(
-        ccpPositions,
-        items,
-        fxRates,
-      );
+      const { settled, deferred, forced } = this.applyThreshold(ccpPositions, items, fxRates);
 
       allDeferred.push(...deferred);
       forcedSettlements.push(...forced);
@@ -219,11 +207,7 @@ export class NettingEngine {
       if (settled.length > 0) {
         const allIds = settled.flatMap((p) => p.settlementIds);
         allGroups.push({
-          groupId: groupId(
-            settled[0].debtorId,
-            settled[0].creditorId,
-            period,
-          ),
+          groupId: groupId(settled[0].debtorId, settled[0].creditorId, period),
           algorithm: 'ccp',
           period,
           positions: settled,
@@ -232,8 +216,8 @@ export class NettingEngine {
       }
     }
 
-    const firstPeriod = byPeriod.values().next().value?.period
-      ?? periodForTimestamp(new Date(), 'default');
+    const firstPeriod =
+      byPeriod.values().next().value?.period ?? periodForTimestamp(new Date(), 'default');
 
     return {
       period: firstPeriod,
@@ -250,10 +234,7 @@ export class NettingEngine {
    * directions to produce a single net payable. If A owes B 100 USD and B owes
    * A 40 USD, the net is: A owes B 60 USD.
    */
-  bilateralNetting(
-    settlements: PendingSettlement[],
-    fxRates: FxRates,
-  ): NetPosition[] {
+  bilateralNetting(settlements: PendingSettlement[], fxRates: FxRates): NetPosition[] {
     // Key: `sortedPartyA|sortedPartyB|currency`
     type BilateralKey = string;
     const ledger = new Map<
@@ -309,10 +290,7 @@ export class NettingEngine {
    * the number of bilateral transfers by routing offsetting flows through
    * a single settlement instruction per net creditor/debtor pair.
    */
-  multilateralNetting(
-    positions: NetPosition[],
-    fxRates: FxRates,
-  ): NetPosition[] {
+  multilateralNetting(positions: NetPosition[], fxRates: FxRates): NetPosition[] {
     // Group by currency
     const byCurrency = new Map<SupportedCurrency, NetPosition[]>();
     for (const p of positions) {
@@ -363,10 +341,7 @@ export class NettingEngine {
    * node. Each net debtor pays the CCP; the CCP pays each net creditor.
    * This reduces N*(N-1)/2 bilateral links to 2*N CCP links.
    */
-  ccpNetting(
-    positions: NetPosition[],
-    fxRates: FxRates,
-  ): NetPosition[] {
+  ccpNetting(positions: NetPosition[], fxRates: FxRates): NetPosition[] {
     const CCP_ID = 'CCP:AGRITRUST';
 
     const byCurrency = new Map<SupportedCurrency, NetPosition[]>();
@@ -478,10 +453,9 @@ export class NettingEngine {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  private groupByPeriod(settlements: PendingSettlement[]): Map<
-    string,
-    { period: NettingPeriod; items: PendingSettlement[] }
-  > {
+  private groupByPeriod(
+    settlements: PendingSettlement[],
+  ): Map<string, { period: NettingPeriod; items: PendingSettlement[] }> {
     const map = new Map<string, { period: NettingPeriod; items: PendingSettlement[] }>();
 
     for (const s of settlements) {

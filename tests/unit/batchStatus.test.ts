@@ -3,7 +3,10 @@ import { v7 as uuidv7 } from 'uuid';
 import { DataType, newDb } from 'pg-mem';
 import { BatchStatusWorkflow } from '../../src/workflows/batchStatus';
 import { BatchStatus } from '../../src/workflows/types/batchStatus';
-import { TransitionValidator, InvalidTransitionError } from '../../src/workflows/transitionValidator';
+import {
+  TransitionValidator,
+  InvalidTransitionError,
+} from '../../src/workflows/transitionValidator';
 import { AuditLogger } from '../../src/workflows/auditLogger';
 import { WorkflowEngine } from '../../src/workflows/services/workflowEngine';
 import { isValidTransition } from '../../src/workflows/config/statusTransitions';
@@ -50,7 +53,10 @@ function createTestDb() {
   // uuidv7 generates time-based UUIDs that can clash within the same ms.
   // We combine a monotonic counter with random bits for guaranteed uniqueness.
   let uuidSeq = 0;
-  const randomHex = () => Math.floor(Math.random() * 0x10000).toString(16).padStart(4, '0');
+  const randomHex = () =>
+    Math.floor(Math.random() * 0x10000)
+      .toString(16)
+      .padStart(4, '0');
   db.public.registerFunction({
     name: 'gen_random_uuid',
     returns: 'uuid' as any,
@@ -58,7 +64,7 @@ function createTestDb() {
       uuidSeq += 1;
       const hi = BigInt(Date.now()) * BigInt(1000) + BigInt(uuidSeq);
       const hiHex = hi.toString(16).padStart(16, '0').slice(-16);
-      return `${hiHex.slice(0,8)}-${hiHex.slice(8,12)}-7${hiHex.slice(13,16)}-${randomHex()}-${randomHex()}${randomHex()}`;
+      return `${hiHex.slice(0, 8)}-${hiHex.slice(8, 12)}-7${hiHex.slice(13, 16)}-${randomHex()}-${randomHex()}${randomHex()}`;
     },
   });
 
@@ -91,7 +97,7 @@ async function seedBatch(
   pool: any,
   id: string,
   status: BatchStatus = 'REGISTERED',
-  version: number = 1,
+  version = 1,
 ): Promise<void> {
   await pool.query(
     `INSERT INTO batches (id, status, version) VALUES ('${id}', '${status}', ${version})`,
@@ -137,7 +143,9 @@ describe('BatchStatusWorkflow', () => {
     if (workflow) {
       workflow.engine.shutdown();
     }
-    try { await pool?.end(); } catch {}
+    try {
+      await pool?.end();
+    } catch {}
   });
 
   it('transitions REGISTERED → INSPECTED successfully', async () => {
@@ -416,13 +424,7 @@ describe('AuditLogger', () => {
     // Second insert with same idempotency key.
     // pg-mem may not correctly report rowCount for ON CONFLICT DO NOTHING,
     // so we verify idempotency via the actual row count.
-    await auditor.logTransition(
-      batchId,
-      'transition',
-      'REGISTERED',
-      'INSPECTED',
-      idempotencyKey,
-    );
+    await auditor.logTransition(batchId, 'transition', 'REGISTERED', 'INSPECTED', idempotencyKey);
 
     // Only one row should exist — the duplicate was silently ignored.
     const res = await pool.query(

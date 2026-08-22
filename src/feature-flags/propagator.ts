@@ -15,8 +15,7 @@ import { ConfigStore } from './config-store';
 export const PROPAGATION_CHANNEL = 'feature-flag:update';
 
 export type PropagationAction =
-  | { action: 'upsert'; flag: FlagDefinition }
-  | { action: 'delete'; key: string };
+  { action: 'upsert'; flag: FlagDefinition } | { action: 'delete'; key: string };
 
 /** Minimal interface for the subscribe-only Redis connection. */
 export interface RedisPubSubClient {
@@ -36,7 +35,7 @@ export class Propagator {
 
   constructor(
     private readonly engine: FeatureEngine,
-    private readonly store:  ConfigStore,
+    private readonly store: ConfigStore,
   ) {}
 
   /**
@@ -68,10 +67,7 @@ export class Propagator {
    * Publish a change so all nodes receive and apply it.
    * Call this after every admin API mutation.
    */
-  static async publish(
-    publisher: RedisPublishClient,
-    patch: PropagationAction,
-  ): Promise<void> {
+  static async publish(publisher: RedisPublishClient, patch: PropagationAction): Promise<void> {
     await publisher.publish(PROPAGATION_CHANNEL, JSON.stringify(patch));
   }
 

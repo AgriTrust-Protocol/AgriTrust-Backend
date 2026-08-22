@@ -130,11 +130,7 @@ export class RollbackManager {
    * All legs are attempted regardless of individual failures to maximise
    * the number of successful reversals (best-effort per leg, atomic intent).
    */
-  async rollback(
-    groupId: string,
-    legs: SettlementLeg[],
-    reason: string,
-  ): Promise<RollbackRecord> {
+  async rollback(groupId: string, legs: SettlementLeg[], reason: string): Promise<RollbackRecord> {
     const rolledBack: SettlementLeg[] = [];
     const failedRollbacks: Array<{ leg: SettlementLeg; reason: string }> = [];
 
@@ -189,10 +185,7 @@ export class RollbackManager {
     return { success: false, error: lastError };
   }
 
-  private settlementIdsForInstruction(
-    group: NettingGroup,
-    instructionId: string,
-  ): string[] {
+  private settlementIdsForInstruction(group: NettingGroup, instructionId: string): string[] {
     for (const pos of group.positions) {
       if (pos.settlementIds.includes(instructionId)) {
         return pos.settlementIds;

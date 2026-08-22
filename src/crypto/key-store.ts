@@ -38,7 +38,7 @@ export class PgKeyStore {
       `SELECT * FROM keys
        WHERE purpose = $1 AND phase = $2
        ORDER BY created_at DESC LIMIT 1`,
-      [purpose, KeyPhase.ACTIVE]
+      [purpose, KeyPhase.ACTIVE],
     );
     return result.rows[0] ? this.mapRowToKeyRecord(result.rows[0]) : null;
   }
@@ -48,15 +48,15 @@ export class PgKeyStore {
       `SELECT * FROM keys
        WHERE purpose = $1 AND phase IN ($2, $3)
        ORDER BY created_at DESC`,
-      [purpose, KeyPhase.ACTIVE, KeyPhase.GRACE]
+      [purpose, KeyPhase.ACTIVE, KeyPhase.GRACE],
     );
-    return result.rows.map(row => this.mapRowToKeyRecord(row));
+    return result.rows.map((row) => this.mapRowToKeyRecord(row));
   }
 
   async rotate(
     purpose: KeyPurpose,
     newKey: Omit<KeyRecord, 'id' | 'createdAt' | 'phase' | 'expiresAt'>,
-    rotatedBy: string = 'system'
+    rotatedBy = 'system',
   ): Promise<KeyRecord> {
     const client = await this.pool.connect();
     try {
@@ -72,7 +72,7 @@ export class PgKeyStore {
          SET phase = $1, expires_at = $2
          WHERE purpose = $3 AND phase = $4
          RETURNING *`,
-        [KeyPhase.GRACE, expiresAt, purpose, KeyPhase.ACTIVE]
+        [KeyPhase.GRACE, expiresAt, purpose, KeyPhase.ACTIVE],
       );
 
       // Audit transition to Grace
@@ -80,7 +80,7 @@ export class PgKeyStore {
         await client.query(
           `INSERT INTO key_rotation_audit_log (key_id, purpose, phase, rotated_by, fingerprint)
            VALUES ($1, $2, $3, $4, $5)`,
-          [row.id, purpose, KeyPhase.GRACE, rotatedBy, row.fingerprint]
+          [row.id, purpose, KeyPhase.GRACE, rotatedBy, row.fingerprint],
         );
       }
 
@@ -89,7 +89,14 @@ export class PgKeyStore {
         `INSERT INTO keys (purpose, type, public_key, encrypted_private_key, phase, fingerprint)
          VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING *`,
-        [purpose, newKey.type, newKey.publicKey, newKey.encryptedPrivateKey, KeyPhase.ACTIVE, newKey.fingerprint]
+        [
+          purpose,
+          newKey.type,
+          newKey.publicKey,
+          newKey.encryptedPrivateKey,
+          KeyPhase.ACTIVE,
+          newKey.fingerprint,
+        ],
       );
 
       const createdKey = this.mapRowToKeyRecord(insertResult.rows[0]);
@@ -98,7 +105,7 @@ export class PgKeyStore {
       await client.query(
         `INSERT INTO key_rotation_audit_log (key_id, purpose, phase, rotated_by, fingerprint)
          VALUES ($1, $2, $3, $4, $5)`,
-        [createdKey.id, purpose, KeyPhase.ACTIVE, rotatedBy, createdKey.fingerprint]
+        [createdKey.id, purpose, KeyPhase.ACTIVE, rotatedBy, createdKey.fingerprint],
       );
 
       // 3. ENFORCE MAX 2 CONCURRENT ACTIVE KEYS:
@@ -116,14 +123,14 @@ export class PgKeyStore {
              ORDER BY created_at DESC LIMIT 1
          )
          RETURNING *`,
-        [KeyPhase.RETIRED, purpose, KeyPhase.GRACE]
+        [KeyPhase.RETIRED, purpose, KeyPhase.GRACE],
       );
 
       for (const row of retireResult.rows) {
         await client.query(
           `INSERT INTO key_rotation_audit_log (key_id, purpose, phase, rotated_by, fingerprint)
            VALUES ($1, $2, $3, $4, $5)`,
-          [row.id, purpose, KeyPhase.RETIRED, 'system_max_keys_enforcement', row.fingerprint]
+          [row.id, purpose, KeyPhase.RETIRED, 'system_max_keys_enforcement', row.fingerprint],
         );
       }
 
@@ -147,7 +154,7 @@ export class PgKeyStore {
          SET phase = $1
          WHERE phase = $2 AND expires_at <= NOW()
          RETURNING *`,
-        [KeyPhase.RETIRED, KeyPhase.GRACE]
+        [KeyPhase.RETIRED, KeyPhase.GRACE],
       );
 
       // Audit transition to Retired
@@ -155,7 +162,7 @@ export class PgKeyStore {
         await client.query(
           `INSERT INTO key_rotation_audit_log (key_id, purpose, phase, rotated_by, fingerprint)
            VALUES ($1, $2, $3, $4, $5)`,
-          [row.id, row.purpose, KeyPhase.RETIRED, 'system_background_job', row.fingerprint]
+          [row.id, row.purpose, KeyPhase.RETIRED, 'system_background_job', row.fingerprint],
         );
       }
 
@@ -173,17 +180,17 @@ export class PgKeyStore {
     const result = await this.pool.query(
       `SELECT id, purpose, type, public_key, phase, created_at, expires_at, fingerprint
        FROM keys
-       ORDER BY created_at DESC`
+       ORDER BY created_at DESC`,
     );
-    return result.rows.map(row => ({
-        id: row.id,
-        purpose: row.purpose as KeyPurpose,
-        type: row.type as KeyType,
-        publicKey: row.public_key,
-        phase: row.phase as KeyPhase,
-        createdAt: row.created_at,
-        expiresAt: row.expires_at,
-        fingerprint: row.fingerprint
+    return result.rows.map((row) => ({
+      id: row.id,
+      purpose: row.purpose as KeyPurpose,
+      type: row.type as KeyType,
+      publicKey: row.public_key,
+      phase: row.phase as KeyPhase,
+      createdAt: row.created_at,
+      expiresAt: row.expires_at,
+      fingerprint: row.fingerprint,
     }));
   }
 

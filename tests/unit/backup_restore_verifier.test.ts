@@ -1,7 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
-import { BackupRestoreVerifier, BackupCatalog, RestoreSandbox } from '../../src/database/backup/restore_verifier';
+import {
+  BackupRestoreVerifier,
+  BackupCatalog,
+  RestoreSandbox,
+} from '../../src/database/backup/restore_verifier';
 
-const backup = { id: 'backup-2026-07-17', location: 's3://agritrust/backups/latest.dump', takenAt: new Date('2026-07-17T00:00:00Z') };
+const backup = {
+  id: 'backup-2026-07-17',
+  location: 's3://agritrust/backups/latest.dump',
+  takenAt: new Date('2026-07-17T00:00:00Z'),
+};
 
 function createHarness(queryRows: unknown[][] = [[{ version: '1' }]]) {
   const catalog: BackupCatalog = { getLatestBackup: vi.fn().mockResolvedValue(backup) };
@@ -20,10 +28,15 @@ describe('BackupRestoreVerifier', () => {
       catalog,
       sandbox,
       checks: [
-        { name: 'schema_migrations', sql: 'SELECT version FROM schema_migrations LIMIT 1', minRows: 1 },
+        {
+          name: 'schema_migrations',
+          sql: 'SELECT version FROM schema_migrations LIMIT 1',
+          minRows: 1,
+        },
         { name: 'certificates_readable', sql: 'SELECT id FROM certificates LIMIT 1', minRows: 0 },
       ],
-      now: vi.fn()
+      now: vi
+        .fn()
         .mockReturnValueOnce(new Date('2026-07-17T01:00:00Z'))
         .mockReturnValueOnce(new Date('2026-07-17T01:00:01Z')),
       sandboxDatabasePrefix: 'verify_test',

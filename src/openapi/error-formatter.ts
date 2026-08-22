@@ -27,7 +27,8 @@ export function formatOpenApiProblem(
     type,
     title,
     status,
-    detail: errors && errors.length > 0 ? 'One or more payload fields failed OpenAPI validation.' : title,
+    detail:
+      errors && errors.length > 0 ? 'One or more payload fields failed OpenAPI validation.' : title,
     instance,
     errors: errors?.map((error) => ({
       message: error.message ?? 'Validation failed',

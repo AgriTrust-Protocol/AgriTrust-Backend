@@ -19,7 +19,7 @@ export interface VersionConfig {
 class VersionRegistry {
   private static instance: VersionRegistry;
   private versions: Map<string, VersionConfig> = new Map();
-  private defaultVersion: string = 'v2';
+  private defaultVersion = 'v2';
 
   private constructor() {
     this.registerVersions();

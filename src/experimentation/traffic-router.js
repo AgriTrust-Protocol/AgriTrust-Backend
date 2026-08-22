@@ -8,7 +8,7 @@ class TrafficRouter {
   }
 
   static route(tenantId, clientIp) {
-    const activeExperiments = ExperimentRegistry.getAll().filter(e => e.status === 'Running');
+    const activeExperiments = ExperimentRegistry.getAll().filter((e) => e.status === 'Running');
     const routingKeyBasis = tenantId || clientIp || 'global-anonymous';
 
     for (const exp of activeExperiments) {

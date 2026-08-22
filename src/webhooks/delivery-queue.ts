@@ -12,15 +12,26 @@ export interface DeliveryQueueRedis {
   zadd(key: string, score: number, member: string): Promise<unknown>;
   zrem(key: string, member: string): Promise<unknown>;
   zcard(key: string): Promise<number>;
-  zrangebyscore(key: string, min: number | string, max: number | string, ...args: (string | number)[]): Promise<string[]>;
+  zrangebyscore(
+    key: string,
+    min: number | string,
+    max: number | string,
+    ...args: (string | number)[]
+  ): Promise<string[]>;
 }
 
 export class DeliveryQueueFullError extends Error {
-  constructor() { super('Webhook delivery queue capacity reached'); this.name = 'DeliveryQueueFullError'; }
+  constructor() {
+    super('Webhook delivery queue capacity reached');
+    this.name = 'DeliveryQueueFullError';
+  }
 }
 
 export class DeliveryQueue {
-  constructor(private readonly redis: DeliveryQueueRedis, private readonly maxPending = DEFAULT_WEBHOOK_CONFIG.maxPendingDeliveries) {}
+  constructor(
+    private readonly redis: DeliveryQueueRedis,
+    private readonly maxPending = DEFAULT_WEBHOOK_CONFIG.maxPendingDeliveries,
+  ) {}
 
   async enqueue(delivery: WebhookDelivery): Promise<void> {
     if ((await this.redis.zcard(QUEUE_KEY)) >= this.maxPending) throw new DeliveryQueueFullError();
@@ -39,7 +50,16 @@ export class DeliveryQueue {
     return deliveries;
   }
 
-  async remove(id: string): Promise<void> { await this.redis.zrem(QUEUE_KEY, id); await this.redis.hdel(HASH_KEY, id); }
-  async list(limit = 100): Promise<WebhookDelivery[]> { return (await this.redis.hvals(HASH_KEY)).slice(0, limit).map((r) => JSON.parse(r) as WebhookDelivery); }
-  async depth(): Promise<number> { return this.redis.zcard(QUEUE_KEY); }
+  async remove(id: string): Promise<void> {
+    await this.redis.zrem(QUEUE_KEY, id);
+    await this.redis.hdel(HASH_KEY, id);
+  }
+  async list(limit = 100): Promise<WebhookDelivery[]> {
+    return (await this.redis.hvals(HASH_KEY))
+      .slice(0, limit)
+      .map((r) => JSON.parse(r) as WebhookDelivery);
+  }
+  async depth(): Promise<number> {
+    return this.redis.zcard(QUEUE_KEY);
+  }
 }

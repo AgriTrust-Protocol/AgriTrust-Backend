@@ -12,7 +12,9 @@ export interface TrustScoreRecord {
 
 export function accuracyScore(predicted: number, actual: number): number {
   if (!Number.isFinite(predicted) || !Number.isFinite(actual) || actual <= 0) {
-    throw new Error('Predicted and actual yields must be finite, and actual yield must be positive');
+    throw new Error(
+      'Predicted and actual yields must be finite, and actual yield must be positive',
+    );
   }
   const relativeError = Math.abs(predicted - actual) / actual;
   return Math.max(0, 1 - relativeError);
@@ -33,7 +35,11 @@ export function updateTrust(
   existingScores: Map<string, TrustScoreRecord>,
 ): TrustScoreRecord {
   const previous = existingScores.get(sourceId)?.score ?? DEFAULT_TRUST_SCORE;
-  const record = { sourceId, score: updateTrustScore(previous, predicted, actual), updatedAt: new Date() };
+  const record = {
+    sourceId,
+    score: updateTrustScore(previous, predicted, actual),
+    updatedAt: new Date(),
+  };
   existingScores.set(sourceId, record);
   return record;
 }

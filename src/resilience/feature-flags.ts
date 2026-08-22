@@ -60,7 +60,9 @@ export class FeatureFlagRegistry {
   }
 
   snapshot(env: NodeJS.ProcessEnv = process.env): Record<string, FeatureFlagEvaluation> {
-    return Object.fromEntries([...this.definitions.keys()].map(name => [name, this.evaluate(name, env)]));
+    return Object.fromEntries(
+      [...this.definitions.keys()].map((name) => [name, this.evaluate(name, env)]),
+    );
   }
 
   private assertKnown(name: string): FeatureFlagDefinition {
@@ -75,7 +77,11 @@ export class FeatureFlagRegistry {
     return `FEATURE_${name.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`;
   }
 
-  private toEvaluation(name: string, state: FeatureFlagState, source: FeatureFlagEvaluation['source']): FeatureFlagEvaluation {
+  private toEvaluation(
+    name: string,
+    state: FeatureFlagState,
+    source: FeatureFlagEvaluation['source'],
+  ): FeatureFlagEvaluation {
     return { name, state, source, enabled: state === 'enabled' };
   }
 }

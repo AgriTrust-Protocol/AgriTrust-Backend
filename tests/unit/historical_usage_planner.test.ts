@@ -8,9 +8,21 @@ describe('HistoricalUsagePlanner', () => {
   beforeEach(() => metricsRegistry.resetMetrics());
 
   it('forecasts usage growth and recommends scaling before the critical threshold', () => {
-    const planner = new HistoricalUsagePlanner({ warningThreshold: 0.7, criticalThreshold: 0.85, targetUtilization: 0.6, horizonHours: 168, minSamples: 2 });
+    const planner = new HistoricalUsagePlanner({
+      warningThreshold: 0.7,
+      criticalThreshold: 0.85,
+      targetUtilization: 0.6,
+      horizonHours: 168,
+      minSamples: 2,
+    });
     planner.record({ service: 'api', resource: 'cpu', used: 40, capacity: 100, timestamp: base });
-    planner.record({ service: 'api', resource: 'cpu', used: 72, capacity: 100, timestamp: new Date(base.getTime() + 14 * 24 * 3_600_000) });
+    planner.record({
+      service: 'api',
+      resource: 'cpu',
+      used: 72,
+      capacity: 100,
+      timestamp: new Date(base.getTime() + 14 * 24 * 3_600_000),
+    });
 
     const forecast = planner.forecast('api', 'cpu');
 
@@ -21,17 +33,53 @@ describe('HistoricalUsagePlanner', () => {
   });
 
   it('marks exhausted capacity as urgent', () => {
-    const planner = new HistoricalUsagePlanner({ warningThreshold: 0.7, criticalThreshold: 0.85, targetUtilization: 0.6, horizonHours: 24, minSamples: 2 });
-    planner.record({ service: 'worker', resource: 'queue', used: 80, capacity: 100, timestamp: base });
-    planner.record({ service: 'worker', resource: 'queue', used: 90, capacity: 100, timestamp: new Date(base.getTime() + 3_600_000) });
+    const planner = new HistoricalUsagePlanner({
+      warningThreshold: 0.7,
+      criticalThreshold: 0.85,
+      targetUtilization: 0.6,
+      horizonHours: 24,
+      minSamples: 2,
+    });
+    planner.record({
+      service: 'worker',
+      resource: 'queue',
+      used: 80,
+      capacity: 100,
+      timestamp: base,
+    });
+    planner.record({
+      service: 'worker',
+      resource: 'queue',
+      used: 90,
+      capacity: 100,
+      timestamp: new Date(base.getTime() + 3_600_000),
+    });
 
     expect(planner.forecast('worker', 'queue').recommendation).toBe('urgent');
   });
 
   it('exports Prometheus gauges for dashboards and alerts', async () => {
-    const planner = new HistoricalUsagePlanner({ warningThreshold: 0.7, criticalThreshold: 0.85, targetUtilization: 0.6, horizonHours: 24, minSamples: 2 });
-    planner.record({ service: 'api', resource: 'memory', used: 50, capacity: 100, timestamp: base });
-    planner.record({ service: 'api', resource: 'memory', used: 55, capacity: 100, timestamp: new Date(base.getTime() + 3_600_000) });
+    const planner = new HistoricalUsagePlanner({
+      warningThreshold: 0.7,
+      criticalThreshold: 0.85,
+      targetUtilization: 0.6,
+      horizonHours: 24,
+      minSamples: 2,
+    });
+    planner.record({
+      service: 'api',
+      resource: 'memory',
+      used: 50,
+      capacity: 100,
+      timestamp: base,
+    });
+    planner.record({
+      service: 'api',
+      resource: 'memory',
+      used: 55,
+      capacity: 100,
+      timestamp: new Date(base.getTime() + 3_600_000),
+    });
 
     planner.forecast('api', 'memory');
     const metrics = await metricsRegistry.metrics();

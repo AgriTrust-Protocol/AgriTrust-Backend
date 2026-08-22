@@ -93,7 +93,10 @@ export class TenantRateLimiter {
     this.now = options.now ?? Date.now;
   }
 
-  allow(tenant: TenantContext, cost = 1): { allowed: boolean; retryAfterSeconds: number; remainingTokens: number } {
+  allow(
+    tenant: TenantContext,
+    cost = 1,
+  ): { allowed: boolean; retryAfterSeconds: number; remainingTokens: number } {
     const policy = this.policyFor(tenant);
     let bucket = this.buckets.get(tenant.tenantId);
     if (!bucket) {
@@ -105,9 +108,17 @@ export class TenantRateLimiter {
 
     const allowed = bucket.consume(cost);
     const snapshot = bucket.snapshot();
-    tenantBucketTokensGauge.set({ tenant_id: tenant.tenantId, tier: String(tenant.tier) }, snapshot.tokens);
-    tenantRateLimitDecisionsTotal.inc({ tenant_id: tenant.tenantId, tier: String(tenant.tier), decision: allowed ? 'allow' : 'throttle' });
-    if (!allowed) tenantRateLimitThrottledTotal.inc({ tenant_id: tenant.tenantId, tier: String(tenant.tier) });
+    tenantBucketTokensGauge.set(
+      { tenant_id: tenant.tenantId, tier: String(tenant.tier) },
+      snapshot.tokens,
+    );
+    tenantRateLimitDecisionsTotal.inc({
+      tenant_id: tenant.tenantId,
+      tier: String(tenant.tier),
+      decision: allowed ? 'allow' : 'throttle',
+    });
+    if (!allowed)
+      tenantRateLimitThrottledTotal.inc({ tenant_id: tenant.tenantId, tier: String(tenant.tier) });
 
     return {
       allowed,
@@ -125,7 +136,9 @@ export class TenantRateLimiter {
   }
 
   private policyFor(tenant: TenantContext): TenantRateLimitPolicy {
-    return this.tenantPolicies[tenant.tenantId] ?? this.tierPolicies[tenant.tier] ?? this.defaultPolicy;
+    return (
+      this.tenantPolicies[tenant.tenantId] ?? this.tierPolicies[tenant.tier] ?? this.defaultPolicy
+    );
   }
 }
 
@@ -135,43 +148,47 @@ function getOrCreateMetric<T>(name: string, factory: () => T): T {
 
 export const tenantRateLimitDurationMs = getOrCreateMetric(
   'tenant_rate_limit_check_duration_ms',
-  () => new Histogram({
-    name: 'tenant_rate_limit_check_duration_ms',
-    help: 'Per-tenant token bucket decision latency in milliseconds',
-    labelNames: ['tier', 'decision'] as const,
-    buckets: [1, 5, 10, 25, 50, 100],
-    registers: [metricsRegistry],
-  }),
+  () =>
+    new Histogram({
+      name: 'tenant_rate_limit_check_duration_ms',
+      help: 'Per-tenant token bucket decision latency in milliseconds',
+      labelNames: ['tier', 'decision'] as const,
+      buckets: [1, 5, 10, 25, 50, 100],
+      registers: [metricsRegistry],
+    }),
 ) as Histogram<'tier' | 'decision'>;
 
 export const tenantRateLimitDecisionsTotal = getOrCreateMetric(
   'tenant_rate_limit_decisions_total',
-  () => new Counter({
-    name: 'tenant_rate_limit_decisions_total',
-    help: 'Per-tenant rate-limit decisions by tenant, tier, and decision',
-    labelNames: ['tenant_id', 'tier', 'decision'] as const,
-    registers: [metricsRegistry],
-  }),
+  () =>
+    new Counter({
+      name: 'tenant_rate_limit_decisions_total',
+      help: 'Per-tenant rate-limit decisions by tenant, tier, and decision',
+      labelNames: ['tenant_id', 'tier', 'decision'] as const,
+      registers: [metricsRegistry],
+    }),
 ) as Counter<'tenant_id' | 'tier' | 'decision'>;
 
 export const tenantRateLimitThrottledTotal = getOrCreateMetric(
   'tenant_rate_limit_throttled_total',
-  () => new Counter({
-    name: 'tenant_rate_limit_throttled_total',
-    help: 'Per-tenant requests rejected by token bucket rate limiting',
-    labelNames: ['tenant_id', 'tier'] as const,
-    registers: [metricsRegistry],
-  }),
+  () =>
+    new Counter({
+      name: 'tenant_rate_limit_throttled_total',
+      help: 'Per-tenant requests rejected by token bucket rate limiting',
+      labelNames: ['tenant_id', 'tier'] as const,
+      registers: [metricsRegistry],
+    }),
 ) as Counter<'tenant_id' | 'tier'>;
 
 export const tenantBucketTokensGauge = getOrCreateMetric(
   'tenant_rate_limit_bucket_tokens',
-  () => new Gauge({
-    name: 'tenant_rate_limit_bucket_tokens',
-    help: 'Current token count in each tenant token bucket',
-    labelNames: ['tenant_id', 'tier'] as const,
-    registers: [metricsRegistry],
-  }),
+  () =>
+    new Gauge({
+      name: 'tenant_rate_limit_bucket_tokens',
+      help: 'Current token count in each tenant token bucket',
+      labelNames: ['tenant_id', 'tier'] as const,
+      registers: [metricsRegistry],
+    }),
 ) as Gauge<'tenant_id' | 'tier'>;
 
 export function resolveTenantContext(req: Request, tenantIdHeader = 'x-tenant-id'): TenantContext {
@@ -191,7 +208,10 @@ export function createTenantRateLimitMiddleware(
     const tenant = resolveTenantContext(req, options.tenantIdHeader);
     const decision = limiter.allow(tenant);
     const elapsedMs = Number(process.hrtime.bigint() - started) / 1_000_000;
-    tenantRateLimitDurationMs.observe({ tier: String(tenant.tier), decision: decision.allowed ? 'allow' : 'throttle' }, elapsedMs);
+    tenantRateLimitDurationMs.observe(
+      { tier: String(tenant.tier), decision: decision.allowed ? 'allow' : 'throttle' },
+      elapsedMs,
+    );
 
     res.setHeader('X-RateLimit-Remaining', String(decision.remainingTokens));
     if (decision.allowed) return next();

@@ -52,10 +52,10 @@ class MonitoredPool {
   private readonly probeTimeoutMs: number;
   private readonly resizeCooldownMs: number;
   private readonly now: () => number;
-  private acquired: number = 0;
-  private totalCreated: number = 0;
-  private lastUtilization: number = 0;
-  private lastResizeAt: number = 0;
+  private acquired = 0;
+  private totalCreated = 0;
+  private lastUtilization = 0;
+  private lastResizeAt = 0;
   private lastHealth: PoolHealthSnapshot | undefined;
 
   constructor(config: PoolConfig & AdaptivePoolOptions) {
@@ -95,13 +95,10 @@ class MonitoredPool {
 
   private updateBackpressure(): void {
     const available = this.maxConnections - this.acquired;
-    this.lastUtilization = this.maxConnections > 0
-      ? (this.acquired / this.maxConnections) * 100
-      : 0;
+    this.lastUtilization =
+      this.maxConnections > 0 ? (this.acquired / this.maxConnections) * 100 : 0;
 
-    const availableRatio = this.maxConnections > 0
-      ? available / this.maxConnections
-      : 0;
+    const availableRatio = this.maxConnections > 0 ? available / this.maxConnections : 0;
 
     if (availableRatio < 0.1) {
       backpressure.setBackpressure('connection_pool', BackpressureLevel.CRITICAL);
@@ -126,7 +123,10 @@ class MonitoredPool {
       return snapshot;
     } catch (err: unknown) {
       const latencyMs = this.now() - startedAt;
-      const snapshot = this.buildHealthSnapshot(latencyMs, err instanceof Error ? err.message : String(err));
+      const snapshot = this.buildHealthSnapshot(
+        latencyMs,
+        err instanceof Error ? err.message : String(err),
+      );
       this.lastHealth = snapshot;
       this.adaptPoolSize(snapshot);
       return snapshot;
@@ -138,7 +138,10 @@ class MonitoredPool {
   private async withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
     let timeout: NodeJS.Timeout | undefined;
     const timeoutPromise = new Promise<never>((_resolve, reject) => {
-      timeout = setTimeout(() => reject(new Error(`pool probe timed out after ${timeoutMs}ms`)), timeoutMs);
+      timeout = setTimeout(
+        () => reject(new Error(`pool probe timed out after ${timeoutMs}ms`)),
+        timeoutMs,
+      );
     });
     try {
       return await Promise.race([promise, timeoutPromise]);
@@ -152,11 +155,14 @@ class MonitoredPool {
     const max = this.getMaxConnections();
     const waiting = this.getWaitingCount();
     const utilization = max > 0 ? acquired / max : 0;
-    const status: PoolHealthStatus = lastError || latencyMs >= this.unhealthyLatencyMs
-      ? 'unhealthy'
-      : (latencyMs >= this.degradedLatencyMs || utilization >= this.scaleUpUtilization || waiting > 0)
-        ? 'degraded'
-        : 'healthy';
+    const status: PoolHealthStatus =
+      lastError || latencyMs >= this.unhealthyLatencyMs
+        ? 'unhealthy'
+        : latencyMs >= this.degradedLatencyMs ||
+            utilization >= this.scaleUpUtilization ||
+            waiting > 0
+          ? 'degraded'
+          : 'healthy';
 
     return {
       status,
@@ -174,12 +180,19 @@ class MonitoredPool {
   private adaptPoolSize(snapshot: PoolHealthSnapshot): void {
     if (snapshot.timestamp - this.lastResizeAt < this.resizeCooldownMs) return;
 
-    if ((snapshot.utilization >= this.scaleUpUtilization || snapshot.waiting > 0) && this.maxConnections < this.maxLimit) {
+    if (
+      (snapshot.utilization >= this.scaleUpUtilization || snapshot.waiting > 0) &&
+      this.maxConnections < this.maxLimit
+    ) {
       this.resize(Math.min(this.maxLimit, Math.ceil(this.maxConnections * 1.25) + 1));
       return;
     }
 
-    if (snapshot.status === 'healthy' && snapshot.utilization <= this.scaleDownUtilization && this.maxConnections > this.minConnections) {
+    if (
+      snapshot.status === 'healthy' &&
+      snapshot.utilization <= this.scaleDownUtilization &&
+      this.maxConnections > this.minConnections
+    ) {
       this.resize(Math.max(this.minConnections, this.maxConnections - 1));
     }
   }
@@ -221,7 +234,9 @@ class MonitoredPool {
 
 export { MonitoredPool };
 
-export function createMonitoredPool(opts: AdaptivePoolOptions & Partial<PoolConfig> = {}): MonitoredPool {
+export function createMonitoredPool(
+  opts: AdaptivePoolOptions & Partial<PoolConfig> = {},
+): MonitoredPool {
   const cfg: PoolConfig & AdaptivePoolOptions = {
     connectionString: process.env.DATABASE_URL,
     ...opts,

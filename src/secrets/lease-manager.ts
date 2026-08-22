@@ -13,7 +13,10 @@ interface LeaseEntry {
   renewTimer?: NodeJS.Timeout;
 }
 
-export type LeaseRenewFn = (leaseId: string, incrementSeconds: number) => Promise<{ ttlSeconds: number; renewable: boolean }>;
+export type LeaseRenewFn = (
+  leaseId: string,
+  incrementSeconds: number,
+) => Promise<{ ttlSeconds: number; renewable: boolean }>;
 export type LeaseRenewedHandler = (lease: LeaseStatus) => void | Promise<void>;
 
 export class LeaseManager {
@@ -73,7 +76,10 @@ export class LeaseManager {
       this.schedule(entry);
       await this.onRenewed?.(this.toStatus(entry));
     } catch (error) {
-      console.error(`[Vault] Failed to renew lease ${leaseId}:`, error instanceof Error ? error.message : error);
+      console.error(
+        `[Vault] Failed to renew lease ${leaseId}:`,
+        error instanceof Error ? error.message : error,
+      );
       this.schedule(entry);
     }
   }

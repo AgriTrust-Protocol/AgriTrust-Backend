@@ -16,7 +16,9 @@ export function getMtlsServerConfigFromEnv(): MtlsServerConfig {
   const { MTLS_SERVER_KEY_PATH, MTLS_SERVER_CERT_PATH, MTLS_CA_CERT_PATH } = process.env;
 
   if (!MTLS_SERVER_KEY_PATH || !MTLS_SERVER_CERT_PATH || !MTLS_CA_CERT_PATH) {
-    throw new Error('MTLS_SERVER_KEY_PATH, MTLS_SERVER_CERT_PATH and MTLS_CA_CERT_PATH are required to start mTLS.');
+    throw new Error(
+      'MTLS_SERVER_KEY_PATH, MTLS_SERVER_CERT_PATH and MTLS_CA_CERT_PATH are required to start mTLS.',
+    );
   }
 
   return {
@@ -28,7 +30,11 @@ export function getMtlsServerConfigFromEnv(): MtlsServerConfig {
   };
 }
 
-export function createMtlsServer(app: Express, registry: DeviceRegistry, config: MtlsServerConfig): https.Server {
+export function createMtlsServer(
+  app: Express,
+  registry: DeviceRegistry,
+  config: MtlsServerConfig,
+): https.Server {
   app.use(createMtlsAuthMiddleware(registry));
 
   const options: https.ServerOptions = {

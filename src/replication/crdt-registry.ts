@@ -14,7 +14,10 @@ export interface CRDT<TSnapshot> {
 export type LWWRegisterSnapshot<T> = { value: T; timestamp: HybridTimestamp };
 
 export class LWWRegister<T> implements CRDT<LWWRegisterSnapshot<T>> {
-  constructor(public value: T, public timestamp: HybridTimestamp) {}
+  constructor(
+    public value: T,
+    public timestamp: HybridTimestamp,
+  ) {}
 
   set(value: T, timestamp: HybridTimestamp): this {
     if (compareTimestamp(timestamp, this.timestamp) >= 0) {
@@ -84,7 +87,10 @@ export class ORSet<T extends string> implements CRDT<ORSetSnapshot<T>> {
   }
 }
 
-export type PNCounterSnapshot = { increments: Record<string, number>; decrements: Record<string, number> };
+export type PNCounterSnapshot = {
+  increments: Record<string, number>;
+  decrements: Record<string, number>;
+};
 
 export class PNCounter implements CRDT<PNCounterSnapshot> {
   private increments = new Map<string, number>();
@@ -111,7 +117,10 @@ export class PNCounter implements CRDT<PNCounterSnapshot> {
   }
 
   toSnapshot(): PNCounterSnapshot {
-    return { increments: Object.fromEntries(this.increments), decrements: Object.fromEntries(this.decrements) };
+    return {
+      increments: Object.fromEntries(this.increments),
+      decrements: Object.fromEntries(this.decrements),
+    };
   }
 
   static fromSnapshot(snapshot: PNCounterSnapshot): PNCounter {
@@ -138,6 +147,12 @@ function mergeMapSet<T>(target: Map<T, Set<string>>, source: Map<T, Set<string>>
 function mergeMax(target: Map<string, number>, source: Map<string, number>): void {
   for (const [key, value] of source) target.set(key, Math.max(target.get(key) ?? 0, value));
 }
-function sum(values: Map<string, number>): number { return [...values.values()].reduce((a, b) => a + b, 0); }
-function mapSetToRecord<T extends string>(map: Map<T, Set<string>>): Record<T, string[]> { return Object.fromEntries([...map].map(([k, v]) => [k, [...v]])) as Record<T, string[]>; }
-function recordToMapSet<T extends string>(record: Record<T, string[]>): Map<T, Set<string>> { return new Map(Object.entries(record).map(([k, v]) => [k as T, new Set(v as string[])])); }
+function sum(values: Map<string, number>): number {
+  return [...values.values()].reduce((a, b) => a + b, 0);
+}
+function mapSetToRecord<T extends string>(map: Map<T, Set<string>>): Record<T, string[]> {
+  return Object.fromEntries([...map].map(([k, v]) => [k, [...v]])) as Record<T, string[]>;
+}
+function recordToMapSet<T extends string>(record: Record<T, string[]>): Map<T, Set<string>> {
+  return new Map(Object.entries(record).map(([k, v]) => [k as T, new Set(v as string[])]));
+}

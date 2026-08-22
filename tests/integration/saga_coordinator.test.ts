@@ -2,10 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { SagaCoordinator, SagaDefinition } from '../../src/settlement/saga-coordinator';
 import { SagaLogStore } from '../../src/database/saga_log';
 import { ok, err, SagaStep } from '../../src/settlement/saga-step';
-import {
-  EscrowEngine,
-  buildSettlementSaga,
-} from '../../src/settlement/escrow-engine';
+import { EscrowEngine, buildSettlementSaga } from '../../src/settlement/escrow-engine';
 
 /**
  * In-memory fake of SagaLogStore. Records every step transition so tests can
@@ -16,7 +13,13 @@ class FakeLogStore {
   logs: Array<{ sagaId: string; stepId: string; status: string; error?: string | null }> = [];
 
   async createSaga(sagaId: string, name: string, tenantId: string, context: any) {
-    this.executions.set(sagaId, { saga_id: sagaId, name, tenant_id: tenantId, status: 'pending', context });
+    this.executions.set(sagaId, {
+      saga_id: sagaId,
+      name,
+      tenant_id: tenantId,
+      status: 'pending',
+      context,
+    });
   }
   async updateSagaStatus(sagaId: string, status: string, context?: any) {
     const e = this.executions.get(sagaId);
@@ -25,7 +28,13 @@ class FakeLogStore {
       if (context) e.context = context;
     }
   }
-  async recordStep(sagaId: string, stepId: string, status: string, _payload?: any, error?: string | null) {
+  async recordStep(
+    sagaId: string,
+    stepId: string,
+    status: string,
+    _payload?: any,
+    error?: string | null,
+  ) {
     this.logs.push({ sagaId, stepId, status, error });
   }
   async isStepCompleted(sagaId: string, stepId: string) {
@@ -180,7 +189,9 @@ describe('SagaCoordinator', () => {
 
     expect(result.status).toBe('failed');
     expect(compAttempts).toBe(3);
-    expect(store.logs.some((l) => l.stepId === 'x' && l.status === 'compensation_failed')).toBe(true);
+    expect(store.logs.some((l) => l.stepId === 'x' && l.status === 'compensation_failed')).toBe(
+      true,
+    );
   });
 
   it('resumes an interrupted run on retry, skipping completed steps', async () => {
@@ -261,9 +272,9 @@ describe('SagaCoordinator', () => {
 
     const inFlight = limited.execute(slowDef, {}, { tenantId: 'busy' });
     // Second concurrent saga for the same tenant must be rejected.
-    await expect(
-      limited.execute(slowDef, {}, { tenantId: 'busy' }),
-    ).rejects.toThrow(/Concurrent saga limit/);
+    await expect(limited.execute(slowDef, {}, { tenantId: 'busy' })).rejects.toThrow(
+      /Concurrent saga limit/,
+    );
 
     releaseGate();
     await inFlight;

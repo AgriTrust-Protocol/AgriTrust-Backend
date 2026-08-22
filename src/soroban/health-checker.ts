@@ -120,11 +120,13 @@ export class HealthChecker {
   }
 
   public getStatus(nodeUrl: string): NodeHealthInfo {
-    return this.statuses.get(nodeUrl) || {
-      status: NodeStatus.DEAD,
-      p99Latency: 1000,
-      errorRate: 1.0,
-    };
+    return (
+      this.statuses.get(nodeUrl) || {
+        status: NodeStatus.DEAD,
+        p99Latency: 1000,
+        errorRate: 1.0,
+      }
+    );
   }
 
   private updateStatus(nodeUrl: string): void {
@@ -151,7 +153,7 @@ export class HealthChecker {
 
     // Calculate error rate and p99
     const totalChecks = items.length;
-    const failures = items.filter(s => !s).length;
+    const failures = items.filter((s) => !s).length;
     statusInfo.errorRate = totalChecks > 0 ? failures / totalChecks : 0;
 
     const nodeLatencies = this.latencies.get(nodeUrl)!;

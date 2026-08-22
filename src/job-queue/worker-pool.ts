@@ -1,4 +1,12 @@
-import { ActiveJob, DEFAULT_JOB_TIMEOUT_MS, DEFAULT_RETRY_LIMIT, DEFAULT_WORKER_POOL_SIZE, JobCompletion, JobDef, QueuedJob } from './types';
+import {
+  ActiveJob,
+  DEFAULT_JOB_TIMEOUT_MS,
+  DEFAULT_RETRY_LIMIT,
+  DEFAULT_WORKER_POOL_SIZE,
+  JobCompletion,
+  JobDef,
+  QueuedJob,
+} from './types';
 
 /**
  * Manages the lifecycle and concurrency of running jobs.
@@ -11,7 +19,8 @@ export class WorkerPool {
   private readonly active = new Map<string, ActiveJob>();
   private readonly activeCountByType = new Map<string, number>();
   private poolSize: number;
-  private onCompleteCallbacks: Array<{ jobId: string; cb: (completion: JobCompletion) => void }> = [];
+  private onCompleteCallbacks: Array<{ jobId: string; cb: (completion: JobCompletion) => void }> =
+    [];
 
   constructor(poolSize: number = DEFAULT_WORKER_POOL_SIZE) {
     this.poolSize = poolSize;
@@ -87,7 +96,9 @@ export class WorkerPool {
         console.log(`[WorkerPool] Retrying job ${job.id} (attempt ${retryJob.retryCount})`);
         this.fireOnComplete(job.id, { status: 'retry', retryJob, error });
       } else {
-        console.error(`[WorkerPool] Job ${job.id} exhausted retries — sending to dead letter queue`);
+        console.error(
+          `[WorkerPool] Job ${job.id} exhausted retries — sending to dead letter queue`,
+        );
         this.fireOnComplete(job.id, {
           status: 'dead-letter',
           deadLetterJob: {

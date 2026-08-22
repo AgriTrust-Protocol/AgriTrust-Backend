@@ -81,18 +81,12 @@ export class SwiftAdapter {
    * Skips CCP-leg positions (those involving 'CCP:AGRITRUST') as they are
    * settled via the internal CCP ledger, not SWIFT rails.
    */
-  async settleGroup(
-    group: NettingGroup,
-    settlementDate: Date,
-  ): Promise<SwiftSettlementResult[]> {
+  async settleGroup(group: NettingGroup, settlementDate: Date): Promise<SwiftSettlementResult[]> {
     const results: SwiftSettlementResult[] = [];
 
     for (const position of group.positions) {
       // CCP legs are settled via the CCP ledger, not SWIFT
-      if (
-        position.debtorId === 'CCP:AGRITRUST' ||
-        position.creditorId === 'CCP:AGRITRUST'
-      ) {
+      if (position.debtorId === 'CCP:AGRITRUST' || position.creditorId === 'CCP:AGRITRUST') {
         continue;
       }
 
@@ -218,7 +212,10 @@ export class SwiftAdapter {
     // Keep IDs within 35-char SWIFT limit by hashing if needed
     if (ids.length <= 35) return ids;
     // Deterministic truncation: first 8 chars + hash suffix
-    const hash = Buffer.from(ids).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 16);
+    const hash = Buffer.from(ids)
+      .toString('base64')
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .slice(0, 16);
     return `NET-${hash}`;
   }
 

@@ -20,12 +20,7 @@ export class PreflightAnalyzer {
 
     const scArgs = functionArgs.map(TxBuilder.scValFromArg);
 
-    const simTx = this.txBuilder.buildSimulationTx(
-      sourcePubkey,
-      contractId,
-      functionName,
-      scArgs,
-    );
+    const simTx = this.txBuilder.buildSimulationTx(sourcePubkey, contractId, functionName, scArgs);
     const simTxXdr = simTx.toEnvelope().toXDR('base64');
 
     let rawSimResult: RawSimulationResult;

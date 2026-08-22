@@ -24,8 +24,12 @@ export const DEFAULT_WEBHOOK_CONFIG: WebhookConfig = {
   retryJitterRatio: 0.2,
 };
 
-export function retryDelayMs(attempt: number, jitterRatio = DEFAULT_WEBHOOK_CONFIG.retryJitterRatio): number {
-  const base = WEBHOOK_RETRY_DELAYS_MS[Math.max(0, Math.min(attempt - 1, WEBHOOK_RETRY_DELAYS_MS.length - 1))];
+export function retryDelayMs(
+  attempt: number,
+  jitterRatio = DEFAULT_WEBHOOK_CONFIG.retryJitterRatio,
+): number {
+  const base =
+    WEBHOOK_RETRY_DELAYS_MS[Math.max(0, Math.min(attempt - 1, WEBHOOK_RETRY_DELAYS_MS.length - 1))];
   const jitter = base * jitterRatio;
   return Math.max(0, Math.round(base - jitter + Math.random() * jitter * 2));
 }

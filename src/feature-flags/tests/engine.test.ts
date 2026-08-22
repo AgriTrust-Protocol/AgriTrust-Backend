@@ -2,12 +2,12 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { FeatureEngine, FlagDefinition, tenantBucket } from '../engine';
 
 const BASE_FLAG: FlagDefinition = {
-  key:               'test-flag',
-  enabled:           true,
+  key: 'test-flag',
+  enabled: true,
   rolloutPercentage: 100,
-  targetingRules:    [],
-  payload:           { version: 1 },
-  variants:          ['control', 'treatment'],
+  targetingRules: [],
+  payload: { version: 1 },
+  variants: ['control', 'treatment'],
 };
 
 describe('FeatureEngine', () => {
@@ -96,7 +96,9 @@ describe('FeatureEngine', () => {
       rolloutPercentage: 0,
       targetingRules: [{ attribute: 'agentRole', operator: 'eq', value: 'internal-tester' }],
     });
-    expect(engine.isEnabled('test-flag', { tenantId: 'x', agentRole: 'internal-tester' })).toBe(true);
+    expect(engine.isEnabled('test-flag', { tenantId: 'x', agentRole: 'internal-tester' })).toBe(
+      true,
+    );
     expect(engine.isEnabled('test-flag', { tenantId: 'x', agentRole: 'user' })).toBe(false);
   });
 
@@ -157,7 +159,7 @@ describe('FeatureEngine', () => {
   it('lists all flags', () => {
     engine.setFlag({ ...BASE_FLAG, key: 'f1' });
     engine.setFlag({ ...BASE_FLAG, key: 'f2' });
-    const keys = engine.listFlags().map(f => f.key);
+    const keys = engine.listFlags().map((f) => f.key);
     expect(keys).toContain('f1');
     expect(keys).toContain('f2');
   });

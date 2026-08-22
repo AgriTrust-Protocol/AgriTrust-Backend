@@ -6,8 +6,16 @@ import { HealthProbe, ReplicaManager } from '../../src/replication/replica-manag
 
 describe('CRDT primitives', () => {
   it('converges LWW registers, OR-Sets, and PN-Counters regardless of merge order', () => {
-    const primaryStatus = new LWWRegister('harvested', { wallTime: 10, logical: 0, nodeId: 'active' });
-    const replicaStatus = new LWWRegister('certified', { wallTime: 11, logical: 0, nodeId: 'passive' });
+    const primaryStatus = new LWWRegister('harvested', {
+      wallTime: 10,
+      logical: 0,
+      nodeId: 'active',
+    });
+    const replicaStatus = new LWWRegister('certified', {
+      wallTime: 11,
+      logical: 0,
+      nodeId: 'passive',
+    });
     expect(primaryStatus.merge(replicaStatus).value).toBe('certified');
 
     const activeTags = new ORSet<string>().add('organic', 'a:1').add('fair-trade', 'a:2');
@@ -22,14 +30,23 @@ describe('CRDT primitives', () => {
 
 describe('DeltaSync', () => {
   it('applies delta-only snapshots and tracks the acknowledged LSN', () => {
-    const sync = new DeltaSync({
-      batchStatus: new LWWRegister('created', { wallTime: 1, logical: 0, nodeId: 'seed' }),
-      escrowState: new LWWRegister('locked', { wallTime: 1, logical: 0, nodeId: 'seed' }),
-      attestations: new ORSet<string>(),
-      inventory: new PNCounter(),
-    }, 'aws-us-west-2');
+    const sync = new DeltaSync(
+      {
+        batchStatus: new LWWRegister('created', { wallTime: 1, logical: 0, nodeId: 'seed' }),
+        escrowState: new LWWRegister('locked', { wallTime: 1, logical: 0, nodeId: 'seed' }),
+        attestations: new ORSet<string>(),
+        inventory: new PNCounter(),
+      },
+      'aws-us-west-2',
+    );
 
-    const ack = sync.apply({ kind: 'pncounter', field: 'inventory', snapshot: { increments: { active: 7 }, decrements: {} }, lsn: '0/16', sourceRegion: 'aws-us-east-1' });
+    const ack = sync.apply({
+      kind: 'pncounter',
+      field: 'inventory',
+      snapshot: { increments: { active: 7 }, decrements: {} },
+      lsn: '0/16',
+      sourceRegion: 'aws-us-east-1',
+    });
     expect(ack).toMatchObject({ lsn: '0/16', replicaRegion: 'aws-us-west-2' });
   });
 });
@@ -41,11 +58,22 @@ describe('ReplicaManager failover', () => {
       const promoted: string[] = [];
       const probe: HealthProbe = {
         async check(replica) {
-          return { regionId: replica.id, reachable: replica.role === 'passive', lastLsn: replica.id === 'aws-us-west-2' ? '0/30' : '0/20', lagMs: replica.id === 'aws-us-west-2' ? 250 : 500, checkedAt: new Date() };
+          return {
+            regionId: replica.id,
+            reachable: replica.role === 'passive',
+            lastLsn: replica.id === 'aws-us-west-2' ? '0/30' : '0/20',
+            lagMs: replica.id === 'aws-us-west-2' ? 250 : 500,
+            checkedAt: new Date(),
+          };
         },
-        async promote(replica) { promoted.push(replica.id); },
+        async promote(replica) {
+          promoted.push(replica.id);
+        },
       };
-      const manager = new ReplicaManager({ ...replicationConfig, activeUnreachablePromoteAfterMs: 1 }, probe);
+      const manager = new ReplicaManager(
+        { ...replicationConfig, activeUnreachablePromoteAfterMs: 1 },
+        probe,
+      );
       await manager.checkOnce();
       vi.advanceTimersByTime(2);
       await manager.checkOnce();

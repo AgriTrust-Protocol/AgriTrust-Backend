@@ -95,7 +95,9 @@ database:
     const snapshots = await aggregator.evaluateAll();
 
     expect(snapshots['api-gateway'].alerts.length).toBeGreaterThan(0);
-    expect(snapshots['api-gateway'].alerts[0].message).toContain('api-gateway -> inventory-service');
+    expect(snapshots['api-gateway'].alerts[0].message).toContain(
+      'api-gateway -> inventory-service',
+    );
   });
 
   it('exports health check, aggregate score, and cascading probability metrics', async () => {

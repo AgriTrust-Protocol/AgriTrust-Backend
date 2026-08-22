@@ -34,10 +34,7 @@ export class HealthChecker {
   private readonly probe: HealthCheckProbe;
   private readonly timeouts: Record<HealthCheckType, number>;
 
-  constructor(
-    probe?: HealthCheckProbe,
-    timeouts: Partial<Record<HealthCheckType, number>> = {},
-  ) {
+  constructor(probe?: HealthCheckProbe, timeouts: Partial<Record<HealthCheckType, number>> = {}) {
     this.probe = probe ?? this.defaultProbe.bind(this);
     this.timeouts = { ...HealthChecker.timeoutsMs, ...timeouts };
   }

@@ -21,7 +21,8 @@ function parseSecretMappings(raw = process.env.VAULT_SECRET_MAPPINGS): SecretMap
   }
   return mappings.map((mapping) => ({
     ...mapping,
-    cacheTtlMs: mapping.cacheTtlMs ?? (mapping.engine === 'kv-v2' ? DEFAULT_STATIC_CACHE_TTL_MS : undefined),
+    cacheTtlMs:
+      mapping.cacheTtlMs ?? (mapping.engine === 'kv-v2' ? DEFAULT_STATIC_CACHE_TTL_MS : undefined),
   }));
 }
 
@@ -33,7 +34,9 @@ export const secretsConfig = {
   secretMount: process.env.VAULT_KV_MOUNT ?? 'secret',
   databaseMount: process.env.VAULT_DATABASE_MOUNT ?? 'database',
   dynamicDatabaseRole: process.env.VAULT_DATABASE_ROLE ?? 'agritrust-postgres',
-  dynamicDatabaseTtlSeconds: Number(process.env.VAULT_DYNAMIC_DB_TTL_SECONDS ?? DEFAULT_DYNAMIC_DB_TTL_SECONDS),
+  dynamicDatabaseTtlSeconds: Number(
+    process.env.VAULT_DYNAMIC_DB_TTL_SECONDS ?? DEFAULT_DYNAMIC_DB_TTL_SECONDS,
+  ),
   encryptedBackupPath: process.env.VAULT_BACKUP_PATH ?? '.env.vault',
   ageIdentityPath: process.env.VAULT_AGE_IDENTITY_PATH,
   maxSecretsPerPod: MAX_SECRETS_PER_POD,

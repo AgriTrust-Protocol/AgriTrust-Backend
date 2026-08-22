@@ -5,10 +5,13 @@ import { formatOpenApiProblem } from '../openapi/error-formatter';
 import { attachResponseValidator } from '../openapi/response-validator';
 
 function normalizeRequestHeaders(headers: Record<string, unknown>): Record<string, unknown> {
-  return Object.entries(headers).reduce((result, [key, value]) => {
-    result[key.toLowerCase()] = value;
-    return result;
-  }, {} as Record<string, unknown>);
+  return Object.entries(headers).reduce(
+    (result, [key, value]) => {
+      result[key.toLowerCase()] = value;
+      return result;
+    },
+    {} as Record<string, unknown>,
+  );
 }
 
 function extractPathParams(urlPath: string, pattern: string): Record<string, string> {
@@ -25,7 +28,10 @@ function extractPathParams(urlPath: string, pattern: string): Record<string, str
 
 function buildRequestPayload(req: any, routePattern: string): Record<string, unknown> {
   const fullPath = (req.baseUrl ?? '') + req.path;
-  const pathParams = Object.keys(req.params ?? {}).length > 0 ? req.params : extractPathParams(fullPath, routePattern);
+  const pathParams =
+    Object.keys(req.params ?? {}).length > 0
+      ? req.params
+      : extractPathParams(fullPath, routePattern);
   return {
     path: pathParams,
     query: req.query ?? {},

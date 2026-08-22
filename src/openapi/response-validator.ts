@@ -11,7 +11,10 @@ function getValidatorForStatus(validators: Map<string, any>, statusCode: number)
   return validators.get('default');
 }
 
-function buildResponseProblem(req: Request, errors: any[]): ReturnType<typeof formatOpenApiProblem> {
+function buildResponseProblem(
+  req: Request,
+  errors: any[],
+): ReturnType<typeof formatOpenApiProblem> {
   return formatOpenApiProblem(
     'https://example.com/problems/openapi-response-validation',
     'Response validation failed',

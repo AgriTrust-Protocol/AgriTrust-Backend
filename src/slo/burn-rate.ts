@@ -91,19 +91,38 @@ export function evaluateMultiWindowBurnRate(
   const ticketShort = byLabel.get('2h');
   const ticketLong = byLabel.get('24h');
 
-  if (fastShort && fastLong && fastShort.burnRate >= policy.pageFastBurnThreshold && fastLong.burnRate >= policy.pageFastBurnThreshold) {
-    reasons.push(`fast burn page: 5m and 1h burn rates are at least ${policy.pageFastBurnThreshold}x`);
+  if (
+    fastShort &&
+    fastLong &&
+    fastShort.burnRate >= policy.pageFastBurnThreshold &&
+    fastLong.burnRate >= policy.pageFastBurnThreshold
+  ) {
+    reasons.push(
+      `fast burn page: 5m and 1h burn rates are at least ${policy.pageFastBurnThreshold}x`,
+    );
   }
 
-  if (slowShort && slowLong && slowShort.burnRate >= policy.pageSlowBurnThreshold && slowLong.burnRate >= policy.pageSlowBurnThreshold) {
-    reasons.push(`slow burn page: 30m and 6h burn rates are at least ${policy.pageSlowBurnThreshold}x`);
+  if (
+    slowShort &&
+    slowLong &&
+    slowShort.burnRate >= policy.pageSlowBurnThreshold &&
+    slowLong.burnRate >= policy.pageSlowBurnThreshold
+  ) {
+    reasons.push(
+      `slow burn page: 30m and 6h burn rates are at least ${policy.pageSlowBurnThreshold}x`,
+    );
   }
 
   if (reasons.length > 0) {
     return { evaluations, severity: 'page', reasons };
   }
 
-  if (ticketShort && ticketLong && ticketShort.burnRate >= policy.ticketBurnThreshold && ticketLong.burnRate >= policy.ticketBurnThreshold) {
+  if (
+    ticketShort &&
+    ticketLong &&
+    ticketShort.burnRate >= policy.ticketBurnThreshold &&
+    ticketLong.burnRate >= policy.ticketBurnThreshold
+  ) {
     reasons.push(`ticket: 2h and 24h burn rates are at least ${policy.ticketBurnThreshold}x`);
     return { evaluations, severity: 'ticket', reasons };
   }

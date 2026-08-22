@@ -21,9 +21,11 @@ export function createPostgresPoolHealthProbe(
     const snapshot = await pool.probeHealth();
     return {
       status: snapshot.status,
-      error: snapshot.lastError ?? (snapshot.status !== 'healthy'
-        ? `pool ${poolName} ${snapshot.status}: ${snapshot.latencyMs}ms latency, ${Math.round(snapshot.utilization * 100)}% utilization, ${snapshot.waiting} waiting`
-        : undefined),
+      error:
+        snapshot.lastError ??
+        (snapshot.status !== 'healthy'
+          ? `pool ${poolName} ${snapshot.status}: ${snapshot.latencyMs}ms latency, ${Math.round(snapshot.utilization * 100)}% utilization, ${snapshot.waiting} waiting`
+          : undefined),
     };
   };
 }

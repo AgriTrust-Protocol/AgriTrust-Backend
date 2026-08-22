@@ -3,7 +3,11 @@ import os from 'os';
 import path from 'path';
 import { DataType, newDb } from 'pg-mem';
 import { describe, expect, it } from 'vitest';
-import { MigrationJournal, MAX_UNDO_BLOCKS, MAX_UNDO_BLOCK_BYTES } from '../../src/db/migrations/journal';
+import {
+  MigrationJournal,
+  MAX_UNDO_BLOCKS,
+  MAX_UNDO_BLOCK_BYTES,
+} from '../../src/db/migrations/journal';
 import { LockManager } from '../../src/db/migrations/lock-manager';
 import { MigrationRunner, MIGRATION_FILENAME_REGEX } from '../../src/db/migrations/runner';
 

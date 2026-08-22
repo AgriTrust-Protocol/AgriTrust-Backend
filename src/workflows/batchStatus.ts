@@ -1,6 +1,13 @@
 import { Pool, PoolClient } from 'pg';
 import { v7 as uuidv7 } from 'uuid';
-import { BatchStatus, BatchRow, TransitionRequest, TransitionResult, MAX_RETRIES, BatchTransitionJob } from './types/batchStatus';
+import {
+  BatchStatus,
+  BatchRow,
+  TransitionRequest,
+  TransitionResult,
+  MAX_RETRIES,
+  BatchTransitionJob,
+} from './types/batchStatus';
 import { TransitionValidator, InvalidTransitionError } from './transitionValidator';
 import { AuditLogger } from './auditLogger';
 import { WorkflowEngine } from './services/workflowEngine';
@@ -115,11 +122,7 @@ export class BatchStatusWorkflow {
       this.validator.validateStatusTransition(current.status, req.targetStatus);
 
       // Step 4: Atomic DB-level validation using the server-side function.
-      await this.validator.validateInTransaction(
-        client,
-        current.status,
-        req.targetStatus,
-      );
+      await this.validator.validateInTransaction(client, current.status, req.targetStatus);
 
       // Step 5: At-most-once guard via processed_transitions table.
       //         If this exact (batch_id, status_before, status_after)
@@ -227,10 +230,7 @@ export class BatchStatusWorkflow {
 
   // ── helpers ────────────────────────────────────────────────────────────
 
-  private async readBatch(
-    client: PoolClient,
-    batchId: string,
-  ): Promise<BatchRow | null> {
+  private async readBatch(client: PoolClient, batchId: string): Promise<BatchRow | null> {
     const res = await client.query(
       `SELECT id, status, version, created_at, updated_at
          FROM batches WHERE id = $1`,

@@ -36,10 +36,11 @@ export async function processDeposit(deposit: DepositTicket): Promise<DepositRes
 
     let previousBalance = 0;
     if (balanceRows.length === 0) {
-      await pool.query(
-        `INSERT INTO silo_bins (silo_id, bin_id, balance) VALUES ($1, $2, $3)`,
-        [deposit.siloId, deposit.binId, deposit.weightKg],
-      );
+      await pool.query(`INSERT INTO silo_bins (silo_id, bin_id, balance) VALUES ($1, $2, $3)`, [
+        deposit.siloId,
+        deposit.binId,
+        deposit.weightKg,
+      ]);
     } else {
       previousBalance = parseFloat(balanceRows[0].balance);
       const newBalance = previousBalance + deposit.weightKg;
@@ -60,7 +61,14 @@ export async function processDeposit(deposit: DepositTicket): Promise<DepositRes
     await pool.query(
       `INSERT INTO deposit_log (ticket_id, silo_id, bin_id, weight_kg, previous_balance, new_balance, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
-      [deposit.ticketId, deposit.siloId, deposit.binId, deposit.weightKg, previousBalance, newBalance],
+      [
+        deposit.ticketId,
+        deposit.siloId,
+        deposit.binId,
+        deposit.weightKg,
+        previousBalance,
+        newBalance,
+      ],
     );
 
     return {

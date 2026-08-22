@@ -1,12 +1,22 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { RateLimiter, DeviceAwareBucket, computeRefillRate } from '../../src/api/middleware/rate_limit';
+import {
+  RateLimiter,
+  DeviceAwareBucket,
+  computeRefillRate,
+} from '../../src/api/middleware/rate_limit';
 import { DeviceProfileStore } from '../../src/devices/profile_store';
 import { DeviceProfile } from '../../src/devices/types';
 import { extractDeviceContext, getLimiterKey } from '../../src/api/middleware/device_auth';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function makePayload(deviceId: string, battery: number, signal: number, firmwareVersion: string, firmwareOutdated: number): Buffer {
+function makePayload(
+  deviceId: string,
+  battery: number,
+  signal: number,
+  firmwareVersion: string,
+  firmwareOutdated: number,
+): Buffer {
   const buf = Buffer.alloc(38);
   // deviceId (bytes 0-15)
   buf.write(deviceId.padEnd(16, ' '), 0, 16, 'ascii');
@@ -126,9 +136,9 @@ describe('computeRefillRate', () => {
 
   it('combines multiple multipliers multiplicatively', () => {
     const profile = healthyProfile('dev-6');
-    profile.power.battery_level = 10;       // x0.02
-    profile.power.signal_strength = -125;   // x0.1
-    profile.isFirmwareOutdated = true;      // x0.5
+    profile.power.battery_level = 10; // x0.02
+    profile.power.signal_strength = -125; // x0.1
+    profile.isFirmwareOutdated = true; // x0.5
     const stats = { mean: 60, stddev: 10, sampleCount: 100 };
     const rate = computeRefillRate(profile, stats);
     expect(rate).toBeCloseTo(60 * 0.02 * 0.1 * 0.5, 2); // 0.06

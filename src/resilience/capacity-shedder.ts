@@ -94,20 +94,49 @@ export class CapacityShedder {
     this.inflight = Math.max(0, this.inflight - 1);
   }
 
-  decide(priority: RequestPriority, signal: CapacitySignal = this.currentSignal()): CapacityDecision {
+  decide(
+    priority: RequestPriority,
+    signal: CapacitySignal = this.currentSignal(),
+  ): CapacityDecision {
     const score = this.score(signal);
     capacityScoreGauge.set(score);
 
     if (priority === 'critical') {
-      return { allowed: true, degraded: score >= this.options.shedBackgroundAt, priority, score, reason: 'critical-path-protected' };
+      return {
+        allowed: true,
+        degraded: score >= this.options.shedBackgroundAt,
+        priority,
+        score,
+        reason: 'critical-path-protected',
+      };
     }
     if (priority === 'important' && score >= this.options.shedImportantAt) {
-      return { allowed: false, degraded: false, priority, score, reason: 'important-capacity-shed', retryAfterSeconds: 10 };
+      return {
+        allowed: false,
+        degraded: false,
+        priority,
+        score,
+        reason: 'important-capacity-shed',
+        retryAfterSeconds: 10,
+      };
     }
     if (priority === 'background' && score >= this.options.shedBackgroundAt) {
-      return { allowed: false, degraded: false, priority, score, reason: 'background-capacity-shed', retryAfterSeconds: 30 };
+      return {
+        allowed: false,
+        degraded: false,
+        priority,
+        score,
+        reason: 'background-capacity-shed',
+        retryAfterSeconds: 30,
+      };
     }
-    return { allowed: true, degraded: score >= this.options.shedBackgroundAt, priority, score, reason: 'within-capacity' };
+    return {
+      allowed: true,
+      degraded: score >= this.options.shedBackgroundAt,
+      priority,
+      score,
+      reason: 'within-capacity',
+    };
   }
 
   currentSignal(): CapacitySignal {
@@ -162,7 +191,11 @@ export function createCapacitySheddingMiddleware(
     if (!decision.allowed) {
       shedRequestsTotal.inc({ priority, reason: decision.reason });
       res.setHeader('Retry-After', String(decision.retryAfterSeconds ?? 10));
-      res.status(503).json({ error: 'capacity_shed', reason: decision.reason, retryAfterSeconds: decision.retryAfterSeconds });
+      res.status(503).json({
+        error: 'capacity_shed',
+        reason: decision.reason,
+        retryAfterSeconds: decision.retryAfterSeconds,
+      });
       return;
     }
 

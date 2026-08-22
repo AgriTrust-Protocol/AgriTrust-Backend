@@ -32,18 +32,18 @@ export const threadStateGauge = new Gauge({
 // ─── /proc/self/task parsing (Linux only) ───────────────────────────────────
 
 const STATE_MAP: Record<string, string> = {
-  R:  'Running',
-  S:  'Sleeping',
-  D:  'DiskSleep',
-  Z:  'Zombie',
-  T:  'Sleeping',   // Stopped - treat as sleeping for alerting purposes
-  t:  'Sleeping',   // Tracing stop
-  X:  'Deadlocked', // Dead
-  x:  'Deadlocked', // Dead
-  K:  'Deadlocked', // Wakekill
-  W:  'Sleeping',   // Waking
-  P:  'DiskSleep',  // Parked
-  I:  'Sleeping',   // Idle (kernel threads)
+  R: 'Running',
+  S: 'Sleeping',
+  D: 'DiskSleep',
+  Z: 'Zombie',
+  T: 'Sleeping', // Stopped - treat as sleeping for alerting purposes
+  t: 'Sleeping', // Tracing stop
+  X: 'Deadlocked', // Dead
+  x: 'Deadlocked', // Dead
+  K: 'Deadlocked', // Wakekill
+  W: 'Sleeping', // Waking
+  P: 'DiskSleep', // Parked
+  I: 'Sleeping', // Idle (kernel threads)
 };
 
 /**
@@ -52,9 +52,7 @@ const STATE_MAP: Record<string, string> = {
  */
 function parseTaskStatus(content: string, tid: string): Record<string, string> {
   const nameLine = content.split('\n').find((l) => l.startsWith('Name:'));
-  const threadName = nameLine
-    ? nameLine.replace('Name:\t', '').trim()
-    : `thread-${tid}`;
+  const threadName = nameLine ? nameLine.replace('Name:\t', '').trim() : `thread-${tid}`;
 
   // Find the "State:" line
   const lines = content.split('\n');
@@ -118,9 +116,7 @@ function fallbackThreadStates(): Map<string, string> {
  */
 export function collectThreadStates(): void {
   const threadStates =
-    process.platform === 'linux'
-      ? collectProcThreadStates()
-      : fallbackThreadStates();
+    process.platform === 'linux' ? collectProcThreadStates() : fallbackThreadStates();
 
   // Reset before setting to prevent stale label combinations from accumulating
   threadStateGauge.reset();

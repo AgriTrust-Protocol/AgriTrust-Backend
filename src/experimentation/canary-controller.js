@@ -6,10 +6,13 @@ class CanaryController {
 
   static startDaemon() {
     if (this.intervalId) return;
-    
-    this.intervalId = setInterval(async () => {
-      await this.evaluateActiveExperiments();
-    }, 5 * 60 * 1000);
+
+    this.intervalId = setInterval(
+      async () => {
+        await this.evaluateActiveExperiments();
+      },
+      5 * 60 * 1000,
+    );
   }
 
   static stopDaemon() {
@@ -21,31 +24,45 @@ class CanaryController {
 
   static async evaluateActiveExperiments() {
     const activeExperiments = ExperimentRegistry.getAll().filter(
-      e => e.status === 'Running' || e.status === 'Evaluating'
+      (e) => e.status === 'Running' || e.status === 'Evaluating',
     );
 
     for (const exp of activeExperiments) {
       try {
-        const successMetrics = await MetricsCollector.fetchMetricSamples(exp.id, 'settlement_success_rate');
-        const avgBaselineSuccess = successMetrics.baseline.reduce((a, b) => a + b, 0) / successMetrics.baseline.length;
-        const avgCanarySuccess = successMetrics.canary.reduce((a, b) => a + b, 0) / successMetrics.canary.length;
+        const successMetrics = await MetricsCollector.fetchMetricSamples(
+          exp.id,
+          'settlement_success_rate',
+        );
+        const avgBaselineSuccess =
+          successMetrics.baseline.reduce((a, b) => a + b, 0) / successMetrics.baseline.length;
+        const avgCanarySuccess =
+          successMetrics.canary.reduce((a, b) => a + b, 0) / successMetrics.canary.length;
 
         if (avgBaselineSuccess - avgCanarySuccess >= 0.05) {
-          this.executeRollback(exp.id, `Automatic Rollback: Canary success rate dropped >5% below baseline.`);
+          this.executeRollback(
+            exp.id,
+            `Automatic Rollback: Canary success rate dropped >5% below baseline.`,
+          );
           continue;
         }
 
         if (exp.startedAt) {
           const hoursRunning = (new Date().getTime() - exp.startedAt.getTime()) / (1000 * 60 * 60);
-          
+
           if (hoursRunning >= exp.evaluationWindowHours) {
             const latencyMetrics = await MetricsCollector.fetchMetricSamples(exp.id, 'latency');
-            const stats = MetricsCollector.calculateMannWhitneyU(latencyMetrics.baseline, latencyMetrics.canary);
+            const stats = MetricsCollector.calculateMannWhitneyU(
+              latencyMetrics.baseline,
+              latencyMetrics.canary,
+            );
 
             if (stats.pValue < 0.05) {
               this.executePromotion(exp.id);
             } else {
-              this.executeRollback(exp.id, `Expired without statistical significance (p = ${stats.pValue.toFixed(4)}).`);
+              this.executeRollback(
+                exp.id,
+                `Expired without statistical significance (p = ${stats.pValue.toFixed(4)}).`,
+              );
             }
           } else if (hoursRunning >= 1 && exp.status === 'Running') {
             ExperimentRegistry.updateStatus(exp.id, 'Evaluating');

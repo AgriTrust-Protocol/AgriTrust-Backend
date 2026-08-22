@@ -5,10 +5,13 @@ import { KeyRotationOrchestrator } from './key-rotation-orchestrator';
 export class KeySigner {
   constructor(
     private readonly keyStore: PgKeyStore,
-    private readonly orchestrator: KeyRotationOrchestrator
+    private readonly orchestrator: KeyRotationOrchestrator,
   ) {}
 
-  public async sign(purpose: KeyPurpose, data: string | Buffer): Promise<{ signature: string; fingerprint: string }> {
+  public async sign(
+    purpose: KeyPurpose,
+    data: string | Buffer,
+  ): Promise<{ signature: string; fingerprint: string }> {
     const keyRecord = await this.keyStore.getCurrent(purpose);
     if (!keyRecord) {
       throw new Error(`No active key found for purpose: ${purpose}`);
@@ -19,7 +22,10 @@ export class KeySigner {
       throw new Error('KEY_ENCRYPTION_MASTER_KEY environment variable is not set');
     }
 
-    const privateKeyStr = this.orchestrator.decryptPrivateKey(keyRecord.encryptedPrivateKey, masterKey);
+    const privateKeyStr = this.orchestrator.decryptPrivateKey(
+      keyRecord.encryptedPrivateKey,
+      masterKey,
+    );
 
     let signature: string;
 

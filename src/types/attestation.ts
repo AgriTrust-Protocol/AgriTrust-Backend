@@ -65,7 +65,10 @@ export const BLOOM_FALSE_POSITIVE_RATE = 0.001;
 
 export class PayloadTooLargeError extends Error {
   readonly code = 'ATTESTATION_PAYLOAD_TOO_LARGE';
-  constructor(readonly id: string, readonly sizeBytes: number) {
+  constructor(
+    readonly id: string,
+    readonly sizeBytes: number,
+  ) {
     super(
       `Attestation "${id}" compressed payload is ${sizeBytes} bytes, ` +
         `exceeding the ${MAX_PAYLOAD_BYTES} byte limit`,
@@ -76,7 +79,10 @@ export class PayloadTooLargeError extends Error {
 
 export class BufferFullError extends Error {
   readonly code = 'ATTESTATION_BUFFER_FULL';
-  constructor(readonly currentCount: number, readonly currentBytes: number) {
+  constructor(
+    readonly currentCount: number,
+    readonly currentBytes: number,
+  ) {
     super(
       `Buffer is full: ${currentCount} records / ${currentBytes} bytes. ` +
         `LRU eviction was unable to free space.`,

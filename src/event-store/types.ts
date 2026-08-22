@@ -83,7 +83,10 @@ export class ConcurrencyConflictError extends Error {
 /** Raised when an event's uncompressed payload exceeds the 64 KB limit. */
 export class PayloadTooLargeError extends Error {
   readonly code = 'PAYLOAD_TOO_LARGE';
-  constructor(readonly eventType: string, readonly sizeBytes: number) {
+  constructor(
+    readonly eventType: string,
+    readonly sizeBytes: number,
+  ) {
     super(
       `Event "${eventType}" payload is ${sizeBytes} bytes, exceeding the ` +
         `${MAX_EVENT_PAYLOAD_BYTES} byte limit`,

@@ -20,8 +20,8 @@ export interface LifecycleEntry {
 
 export class RingBuffer<T = LifecycleEntry> {
   private readonly items: (T | undefined)[];
-  private head: number = 0;
-  private _size: number = 0;
+  private head = 0;
+  private _size = 0;
   readonly capacity: number;
 
   constructor(capacity: number = RING_BUFFER_CAPACITY) {

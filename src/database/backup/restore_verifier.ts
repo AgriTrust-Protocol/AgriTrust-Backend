@@ -83,7 +83,11 @@ export const backupVerificationMetrics = {
 };
 
 export const DEFAULT_BACKUP_VERIFICATION_CHECKS: BackupVerificationCheck[] = [
-  { name: 'migrations_present', sql: 'SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1', minRows: 1 },
+  {
+    name: 'migrations_present',
+    sql: 'SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1',
+    minRows: 1,
+  },
   { name: 'certificates_table_readable', sql: 'SELECT id FROM certificates LIMIT 1', minRows: 0 },
   { name: 'devices_table_readable', sql: 'SELECT id FROM devices LIMIT 1', minRows: 0 },
 ];

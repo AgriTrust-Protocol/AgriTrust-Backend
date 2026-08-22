@@ -17,7 +17,10 @@ export class TelemetryQuarantine {
   ) {}
 
   async write(entry: Omit<QuarantineEntry, 'timestamp'>): Promise<void> {
-    await this.redis.lpush(this.key, JSON.stringify({ ...entry, timestamp: new Date().toISOString() }));
+    await this.redis.lpush(
+      this.key,
+      JSON.stringify({ ...entry, timestamp: new Date().toISOString() }),
+    );
   }
 }
 

@@ -1,9 +1,4 @@
-import {
-  Priority,
-  PRIORITY_WEIGHTS,
-  TICK_INTERVAL_MS,
-  DEFAULT_JOB_LEASE_MS,
-} from './types';
+import { Priority, PRIORITY_WEIGHTS, TICK_INTERVAL_MS, DEFAULT_JOB_LEASE_MS } from './types';
 import { JobRegistry } from './job-registry';
 import { JobQueuePersistence } from './persistence';
 import { WorkerPool } from './worker-pool';
@@ -126,13 +121,16 @@ export class Scheduler {
           this.workerPool.removeOnComplete(job.id);
           const msg = err instanceof Error ? err.message : String(err);
           console.error(`[Scheduler] dispatch error for ${job.id}: ${msg}`);
-          this.persistence.enqueue({
-            ...job,
-            submittedAt: Date.now(),
-          }).catch((enqueueErr: unknown) => {
-            const enqueueMsg = enqueueErr instanceof Error ? enqueueErr.message : String(enqueueErr);
-            console.error(`[Scheduler] dispatch requeue failed for ${job.id}: ${enqueueMsg}`);
-          });
+          this.persistence
+            .enqueue({
+              ...job,
+              submittedAt: Date.now(),
+            })
+            .catch((enqueueErr: unknown) => {
+              const enqueueMsg =
+                enqueueErr instanceof Error ? enqueueErr.message : String(enqueueErr);
+              console.error(`[Scheduler] dispatch requeue failed for ${job.id}: ${enqueueMsg}`);
+            });
         });
       }
     }

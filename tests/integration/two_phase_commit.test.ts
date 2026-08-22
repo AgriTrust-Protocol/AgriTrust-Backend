@@ -7,9 +7,7 @@ import {
   SorobanSubmitResult,
   SorobanTxStatus,
 } from '../../src/blockchain/soroban_bridge';
-import {
-  EscrowEngine,
-} from '../../src/settlement/escrow-engine';
+import { EscrowEngine } from '../../src/settlement/escrow-engine';
 import { processTwoPhaseEscrowRelease } from '../../src/settlement/two_phase_escrow';
 
 /**
@@ -475,12 +473,11 @@ describe('processTwoPhaseEscrowRelease', () => {
     await engine.hold('esc-4', 100);
 
     await expect(
-      processTwoPhaseEscrowRelease(
-        coordinator,
-        submitter as unknown as SorobanSubmitter,
-        engine,
-        { escrowId: 'esc-4', amount: 100, signedTxXdr: 'xdr-data' },
-      ),
+      processTwoPhaseEscrowRelease(coordinator, submitter as unknown as SorobanSubmitter, engine, {
+        escrowId: 'esc-4',
+        amount: 100,
+        signedTxXdr: 'xdr-data',
+      }),
     ).rejects.toThrow(/must be verified/);
   });
 });

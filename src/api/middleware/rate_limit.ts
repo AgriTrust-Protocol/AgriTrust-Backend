@@ -21,7 +21,11 @@ export class DeviceAwareBucket {
   maxTokens: number;
   refillRate: number; // tokens per minute
 
-  constructor(deviceId: string, maxTokens: number = DEFAULT_CAPACITY, refillRate: number = DEFAULT_RATE) {
+  constructor(
+    deviceId: string,
+    maxTokens: number = DEFAULT_CAPACITY,
+    refillRate: number = DEFAULT_RATE,
+  ) {
     this.deviceId = deviceId;
     this.maxTokens = maxTokens;
     this.refillRate = refillRate;

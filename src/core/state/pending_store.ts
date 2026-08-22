@@ -86,9 +86,7 @@ export class PendingStore {
       [txUuid, sorobanHash],
     );
     if (rowCount === 0) {
-      throw new Error(
-        `Cannot commit tx_uuid=${txUuid}: not found or not in pending status`,
-      );
+      throw new Error(`Cannot commit tx_uuid=${txUuid}: not found or not in pending status`);
     }
   }
 

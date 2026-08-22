@@ -24,9 +24,7 @@ import {
 } from '../types/attestation';
 
 /** Function that POSTs a batch to the server and returns per-item results. */
-export type SyncTransport = (
-  batch: AttestationRecord[],
-) => Promise<SyncResultItem[]>;
+export type SyncTransport = (batch: AttestationRecord[]) => Promise<SyncResultItem[]>;
 
 export interface SyncEngineOptions {
   buffer: OfflineBuffer;

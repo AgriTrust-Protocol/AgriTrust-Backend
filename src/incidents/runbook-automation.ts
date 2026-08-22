@@ -31,29 +31,74 @@ export class IncidentRunbookAutomation {
     const dedupKey = this.dedupKey(signal, runbook.id);
     const lastSeen = this.recent.get(dedupKey);
     if (lastSeen && this.now() - lastSeen < this.dedupWindowMs) {
-      incidentRunbookExecutionsTotal.inc({ runbook_id: runbook.id, service: signal.service, status: 'suppressed' });
-      return { id: randomUUID(), signal, runbook, status: 'suppressed', pagerDutyDedupKey: dedupKey, nextSteps: runbook.steps, createdAt: new Date(this.now()).toISOString() };
+      incidentRunbookExecutionsTotal.inc({
+        runbook_id: runbook.id,
+        service: signal.service,
+        status: 'suppressed',
+      });
+      return {
+        id: randomUUID(),
+        signal,
+        runbook,
+        status: 'suppressed',
+        pagerDutyDedupKey: dedupKey,
+        nextSteps: runbook.steps,
+        createdAt: new Date(this.now()).toISOString(),
+      };
     }
 
     const routingKey = this.env[runbook.pagerDutyServiceKeyEnv];
     if (!routingKey) {
-      incidentRunbookExecutionsTotal.inc({ runbook_id: runbook.id, service: signal.service, status: 'failed' });
+      incidentRunbookExecutionsTotal.inc({
+        runbook_id: runbook.id,
+        service: signal.service,
+        status: 'failed',
+      });
       throw new Error(`Missing PagerDuty routing key env var ${runbook.pagerDutyServiceKeyEnv}`);
     }
 
-    const endTimer = incidentPagerDutyTriggerDurationMs.startTimer({ runbook_id: runbook.id, service: signal.service });
+    const endTimer = incidentPagerDutyTriggerDurationMs.startTimer({
+      runbook_id: runbook.id,
+      service: signal.service,
+    });
     try {
-      const client = this.options.pagerDutyClientFactory?.(routingKey) ?? new PagerDutyEventsClient({ routingKey });
+      const client =
+        this.options.pagerDutyClientFactory?.(routingKey) ??
+        new PagerDutyEventsClient({ routingKey });
       const result = await client.trigger(signal, runbook, dedupKey);
       this.recent.set(dedupKey, this.now());
-      incidentRunbookExecutionsTotal.inc({ runbook_id: runbook.id, service: signal.service, status: 'opened' });
-      return { id: randomUUID(), signal, runbook, status: 'opened', pagerDutyDedupKey: result.dedupKey, pagerDutyIncidentKey: result.incidentKey, nextSteps: runbook.steps, createdAt: new Date(this.now()).toISOString() };
+      incidentRunbookExecutionsTotal.inc({
+        runbook_id: runbook.id,
+        service: signal.service,
+        status: 'opened',
+      });
+      return {
+        id: randomUUID(),
+        signal,
+        runbook,
+        status: 'opened',
+        pagerDutyDedupKey: result.dedupKey,
+        pagerDutyIncidentKey: result.incidentKey,
+        nextSteps: runbook.steps,
+        createdAt: new Date(this.now()).toISOString(),
+      };
     } finally {
       endTimer();
     }
   }
 
   private dedupKey(signal: IncidentSignal, runbookId: string): string {
-    return createHash('sha256').update([runbookId, signal.service, signal.metric ?? signal.summary, signal.labels?.route ?? '', signal.labels?.tenant_id ?? ''].join('|')).digest('hex').slice(0, 32);
+    return createHash('sha256')
+      .update(
+        [
+          runbookId,
+          signal.service,
+          signal.metric ?? signal.summary,
+          signal.labels?.route ?? '',
+          signal.labels?.tenant_id ?? '',
+        ].join('|'),
+      )
+      .digest('hex')
+      .slice(0, 32);
   }
 }

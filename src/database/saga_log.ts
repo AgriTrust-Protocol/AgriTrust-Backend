@@ -12,20 +12,10 @@ import { Pool } from 'pg';
  */
 
 export type SagaStatus =
-  | 'pending'
-  | 'executing'
-  | 'completed'
-  | 'compensating'
-  | 'compensated'
-  | 'failed';
+  'pending' | 'executing' | 'completed' | 'compensating' | 'compensated' | 'failed';
 
 export type StepStatus =
-  | 'started'
-  | 'completed'
-  | 'failed'
-  | 'compensating'
-  | 'compensated'
-  | 'compensation_failed';
+  'started' | 'completed' | 'failed' | 'compensating' | 'compensated' | 'compensation_failed';
 
 export interface SagaExecutionRow {
   saga_id: string;
@@ -104,13 +94,7 @@ export class SagaLogStore {
     await this.pool.query(
       `INSERT INTO saga_log (saga_id, step_id, status, payload, error)
        VALUES ($1, $2, $3, $4, $5)`,
-      [
-        sagaId,
-        stepId,
-        status,
-        payload != null ? JSON.stringify(payload) : null,
-        error ?? null,
-      ],
+      [sagaId, stepId, status, payload != null ? JSON.stringify(payload) : null, error ?? null],
     );
   }
 

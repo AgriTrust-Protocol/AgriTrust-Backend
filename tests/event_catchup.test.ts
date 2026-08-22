@@ -23,9 +23,7 @@ class MockBridge extends SorobanBridge {
   }
 
   async getLedgerEffects(sequence: number): Promise<HorizonEffect[]> {
-    return [
-      { type: 'payment', account: 'GABCD', amount: '100', asset_type: 'native' },
-    ];
+    return [{ type: 'payment', account: 'GABCD', amount: '100', asset_type: 'native' }];
   }
 }
 

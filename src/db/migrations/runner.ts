@@ -103,8 +103,7 @@ export class MigrationRunner {
     this.pool = pool;
     this.journal = new MigrationJournal();
     this.lockManager = new LockManager({ acquireTimeoutMs: 10_000 });
-    this.migrationsDir =
-      options.migrationsDir ?? path.join(__dirname);
+    this.migrationsDir = options.migrationsDir ?? path.join(__dirname);
     this.maxDurationMs = options.maxDurationMs ?? MAX_MIGRATION_DURATION_MS;
     this.now = options.now ?? (() => new Date());
   }
@@ -125,9 +124,7 @@ export class MigrationRunner {
       const appliedChecksums = await this.loadAppliedChecksums(client);
 
       const pending = files.filter(
-        (f) =>
-          !appliedChecksums.has(f.checksum) &&
-          (!targetVersion || f.version <= targetVersion),
+        (f) => !appliedChecksums.has(f.checksum) && (!targetVersion || f.version <= targetVersion),
       );
 
       const applied: MigrationRunStep[] = [];
@@ -169,9 +166,7 @@ export class MigrationRunner {
       const entries = await this.journal.listActive(client);
 
       // Entries are already in descending order (most recent first).
-      const toRollback = entries.filter(
-        (e) => !targetVersion || e.version > targetVersion,
-      );
+      const toRollback = entries.filter((e) => !targetVersion || e.version > targetVersion);
 
       const applied: MigrationRunStep[] = [];
 
@@ -180,9 +175,7 @@ export class MigrationRunner {
         try {
           await client.query('BEGIN ISOLATION LEVEL SERIALIZABLE');
           await this.lockManager.acquire(client, entry.affectedTables);
-          await client.query(
-            `SET LOCAL statement_timeout = ${this.maxDurationMs}`,
-          );
+          await client.query(`SET LOCAL statement_timeout = ${this.maxDurationMs}`);
           // Execute the undo block — either a sentinel (TypeScript migration)
           // or raw SQL (SQL-based migrations).
           await executeUndoFromSentinel(client, entry.undoSql);
@@ -229,9 +222,7 @@ export class MigrationRunner {
       const appliedChecksums = await this.loadAppliedChecksums(client);
 
       const pending = files.filter(
-        (f) =>
-          !appliedChecksums.has(f.checksum) &&
-          (!targetVersion || f.version <= targetVersion),
+        (f) => !appliedChecksums.has(f.checksum) && (!targetVersion || f.version <= targetVersion),
       );
 
       const applied: MigrationRunStep[] = pending.map((f) => ({
@@ -287,9 +278,7 @@ export class MigrationRunner {
       await this.lockManager.acquire(client, migration.affectedTables);
 
       // Hard cap on migration duration.
-      await client.query(
-        `SET LOCAL statement_timeout = ${this.maxDurationMs}`,
-      );
+      await client.query(`SET LOCAL statement_timeout = ${this.maxDurationMs}`);
 
       await migration.up(client);
 
@@ -497,10 +486,7 @@ export class MigrationRunner {
  * Used by MigrationRunner.rollbackTo() to execute undo logic when the undo_sql
  * is a sentinel reference rather than raw SQL.
  */
-export async function executeUndoFromSentinel(
-  client: PoolClient,
-  undoSql: string,
-): Promise<void> {
+export async function executeUndoFromSentinel(client: PoolClient, undoSql: string): Promise<void> {
   // Parse sentinel: -- undo:migration version=<v> file=<path>
   const match = undoSql.match(/file=(.+)$/);
   if (!match) {

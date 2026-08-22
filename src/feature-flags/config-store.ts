@@ -17,10 +17,10 @@ import { join } from 'path';
 import { parse } from 'yaml';
 import { FeatureEngine, FlagDefinition } from './engine';
 
-const REDIS_HASH_KEY     = 'feature-flags:store';
-const POLL_INTERVAL_MS   = 10_000;   // 10 s background fallback poll
-const MAX_FLAGS          = 1_024;
-const MAX_PAYLOAD_BYTES  = 64 * 1_024; // 64 KB
+const REDIS_HASH_KEY = 'feature-flags:store';
+const POLL_INTERVAL_MS = 10_000; // 10 s background fallback poll
+const MAX_FLAGS = 1_024;
+const MAX_PAYLOAD_BYTES = 64 * 1_024; // 64 KB
 
 export interface RedisHashClient {
   hset(key: string, field: string, value: string): Promise<number>;
@@ -33,8 +33,8 @@ export class ConfigStore {
   private pollTimer?: NodeJS.Timeout;
 
   constructor(
-    private readonly engine:    FeatureEngine,
-    private readonly redis:     RedisHashClient,
+    private readonly engine: FeatureEngine,
+    private readonly redis: RedisHashClient,
     private readonly yamlPath?: string,
   ) {}
 
@@ -125,7 +125,7 @@ export class ConfigStore {
 
   private loadYaml(): FlagDefinition[] {
     const resolvedPath = this.yamlPath ?? join(__dirname, '../../src/config/flags.yaml');
-    const altPath      = join(__dirname, '../config/flags.yaml');
+    const altPath = join(__dirname, '../config/flags.yaml');
 
     let content: string;
     if (existsSync(resolvedPath)) {
@@ -166,18 +166,20 @@ function normaliseFlagEntry(raw: Record<string, unknown>): FlagDefinition | null
   if (typeof raw.key !== 'string' || !raw.key.trim()) return null;
 
   return {
-    key:               raw.key.trim(),
-    enabled:           raw.enabled !== false,
-    rolloutPercentage: typeof raw.rolloutPercentage === 'number'
-      ? Math.max(0, Math.min(100, Math.round(raw.rolloutPercentage)))
-      : 100,
-    targetingRules:    Array.isArray(raw.targetingRules)
+    key: raw.key.trim(),
+    enabled: raw.enabled !== false,
+    rolloutPercentage:
+      typeof raw.rolloutPercentage === 'number'
+        ? Math.max(0, Math.min(100, Math.round(raw.rolloutPercentage)))
+        : 100,
+    targetingRules: Array.isArray(raw.targetingRules)
       ? (raw.targetingRules as unknown[]).filter(isTargetingRuleRecord).map(normaliseRule)
       : [],
-    payload:           typeof raw.payload === 'object' && raw.payload !== null && !Array.isArray(raw.payload)
-      ? raw.payload as Record<string, unknown>
-      : {},
-    variants:          Array.isArray(raw.variants)
+    payload:
+      typeof raw.payload === 'object' && raw.payload !== null && !Array.isArray(raw.payload)
+        ? (raw.payload as Record<string, unknown>)
+        : {},
+    variants: Array.isArray(raw.variants)
       ? (raw.variants as unknown[]).filter((v): v is string => typeof v === 'string')
       : [],
   };
@@ -190,7 +192,7 @@ function isTargetingRuleRecord(v: unknown): v is Record<string, unknown> {
 function normaliseRule(raw: Record<string, unknown>) {
   return {
     attribute: String(raw.attribute ?? ''),
-    operator:  String(raw.operator ?? 'eq'),
-    value:     raw.value as string | string[] | number,
+    operator: String(raw.operator ?? 'eq'),
+    value: raw.value as string | string[] | number,
   } as import('./engine').TargetingRule;
 }

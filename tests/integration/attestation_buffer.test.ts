@@ -1,14 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import {
-  OfflineBuffer,
-  InMemoryStore,
-} from '../../src/attestation/offline-buffer';
+import { OfflineBuffer, InMemoryStore } from '../../src/attestation/offline-buffer';
 import { DedupFilter } from '../../src/attestation/dedup-filter';
 import { ConnectivityMonitor } from '../../src/network/connectivity-monitor';
-import {
-  SyncEngine,
-  SyncTransport,
-} from '../../src/attestation/sync-engine';
+import { SyncEngine, SyncTransport } from '../../src/attestation/sync-engine';
 import {
   AttestationRecord,
   SyncResultItem,
@@ -19,10 +13,7 @@ import {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-function makeRecord(
-  id: string,
-  overrides?: Partial<AttestationRecord>,
-): AttestationRecord {
+function makeRecord(id: string, overrides?: Partial<AttestationRecord>): AttestationRecord {
   return {
     id,
     payload: { sensor: 'temp', value: 22.5 },
@@ -35,9 +26,7 @@ function makeRecord(
   };
 }
 
-function makeTransport(
-  handler?: (batch: AttestationRecord[]) => SyncResultItem[],
-): SyncTransport {
+function makeTransport(handler?: (batch: AttestationRecord[]) => SyncResultItem[]): SyncTransport {
   return async (batch) =>
     handler
       ? handler(batch)
@@ -71,9 +60,7 @@ describe('OfflineBuffer — enqueue / dequeue / ack / nack', () => {
     const oversized = makeRecord('big', {
       compressedSize: MAX_PAYLOAD_BYTES + 1,
     });
-    await expect(buffer.enqueue(oversized)).rejects.toBeInstanceOf(
-      PayloadTooLargeError,
-    );
+    await expect(buffer.enqueue(oversized)).rejects.toBeInstanceOf(PayloadTooLargeError);
   });
 
   it('dequeueBatch moves records from pending to syncing', async () => {
@@ -182,9 +169,7 @@ describe('OfflineBuffer — LRU eviction', () => {
     await buffer.enqueue(makeRecord('a1'));
     await buffer.enqueue(makeRecord('a2'));
 
-    await expect(buffer.enqueue(makeRecord('a3'))).rejects.toBeInstanceOf(
-      BufferFullError,
-    );
+    await expect(buffer.enqueue(makeRecord('a3'))).rejects.toBeInstanceOf(BufferFullError);
   });
 
   it('evicts by byte limit', async () => {
@@ -658,4 +643,3 @@ describe('SyncEngine — Bloom filter rebase', () => {
     monitor.destroy();
   });
 });
-

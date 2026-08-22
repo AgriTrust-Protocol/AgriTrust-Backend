@@ -110,10 +110,7 @@ function parsePrometheusText(text: string): Map<string, number> {
  * Scrapes the internal metrics registry, parses the output, and verifies
  * that all expected metric families are present.
  */
-export async function debugMetricsCheckHandler(
-  _req: Request,
-  res: Response,
-): Promise<void> {
+export async function debugMetricsCheckHandler(_req: Request, res: Response): Promise<void> {
   try {
     // Scrape the metrics registry directly (no HTTP round-trip needed)
     const metricsText = await metricsRegistry.metrics();

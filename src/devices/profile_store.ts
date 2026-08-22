@@ -10,7 +10,7 @@ class DeviceProfileStore {
   private profiles: Map<string, DeviceProfile> = new Map();
   private maxProfiles: number;
 
-  constructor(maxProfiles: number = 100_000) {
+  constructor(maxProfiles = 100_000) {
     this.maxProfiles = maxProfiles;
   }
 
@@ -69,8 +69,7 @@ class DeviceProfileStore {
     const sum = intervals.reduce((a, b) => a + b, 0);
     const mean = sum / n;
 
-    const variance =
-      intervals.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / n;
+    const variance = intervals.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / n;
     const stddev = Math.sqrt(variance);
 
     return { mean, stddev, sampleCount: n };

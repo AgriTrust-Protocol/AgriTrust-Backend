@@ -10,10 +10,10 @@ export enum Priority {
 /** Weight fraction (0–1) per priority level for weighted fair queueing. */
 export const PRIORITY_WEIGHTS: Record<Priority, number> = {
   [Priority.Background]: 0.05,
-  [Priority.Low]: 0.10,
-  [Priority.Normal]: 0.20,
+  [Priority.Low]: 0.1,
+  [Priority.Normal]: 0.2,
   [Priority.High]: 0.25,
-  [Priority.Critical]: 0.40,
+  [Priority.Critical]: 0.4,
 };
 
 /** Default concurrency caps per job type at each priority. */

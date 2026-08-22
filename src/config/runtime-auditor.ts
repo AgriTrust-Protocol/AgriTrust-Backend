@@ -77,11 +77,24 @@ export class RuntimeConfigAuditor {
     const hashed = hashSnapshot(snapshot, this.redactedKeys);
     const drift = detectDrift(this.baseline, hashed, this.criticalKeys);
     const durationMs = Number(process.hrtime.bigint() - start) / 1_000_000;
-    const result = drift.some(item => item.severity === 'critical') ? 'critical_drift' : drift.length > 0 ? 'drift' : 'ok';
+    const result = drift.some((item) => item.severity === 'critical')
+      ? 'critical_drift'
+      : drift.length > 0
+        ? 'drift'
+        : 'ok';
 
     runtimeConfigAuditDurationMs.observe({ service: this.options.service, result }, durationMs);
-    runtimeConfigLastAuditTimestampSeconds.set({ service: this.options.service }, Math.floor(this.clock().getTime() / 1000));
-    drift.forEach(item => runtimeConfigDriftTotal.inc({ service: this.options.service, key: item.key, severity: item.severity }));
+    runtimeConfigLastAuditTimestampSeconds.set(
+      { service: this.options.service },
+      Math.floor(this.clock().getTime() / 1000),
+    );
+    drift.forEach((item) =>
+      runtimeConfigDriftTotal.inc({
+        service: this.options.service,
+        key: item.key,
+        severity: item.severity,
+      }),
+    );
 
     return {
       service: this.options.service,
@@ -93,19 +106,42 @@ export class RuntimeConfigAuditor {
   }
 }
 
-export function hashSnapshot(snapshot: RuntimeConfigSnapshot, redactedKeys: Set<string> = new Set()): Record<string, string> {
-  return Object.keys(snapshot).sort().reduce<Record<string, string>>((acc, key) => {
-    const value = redactedKeys.has(key) || REDACTED_PATTERN.test(key) ? '[REDACTED]' : snapshot[key];
-    acc[key] = stableHash({ key, value });
-    return acc;
-  }, {});
+export function hashSnapshot(
+  snapshot: RuntimeConfigSnapshot,
+  redactedKeys: Set<string> = new Set(),
+): Record<string, string> {
+  return Object.keys(snapshot)
+    .sort()
+    .reduce<Record<string, string>>((acc, key) => {
+      const value =
+        redactedKeys.has(key) || REDACTED_PATTERN.test(key) ? '[REDACTED]' : snapshot[key];
+      acc[key] = stableHash({ key, value });
+      return acc;
+    }, {});
 }
 
-export function detectDrift(baseline: Record<string, string>, actual: Record<string, string>, criticalKeys: Set<string> = new Set()): ConfigDrift[] {
+export function detectDrift(
+  baseline: Record<string, string>,
+  actual: Record<string, string>,
+  criticalKeys: Set<string> = new Set(),
+): ConfigDrift[] {
   const keys = Array.from(new Set([...Object.keys(baseline), ...Object.keys(actual)])).sort();
-  return keys.flatMap(key => baseline[key] === actual[key] ? [] : [{ key, expectedHash: baseline[key], actualHash: actual[key], severity: criticalKeys.has(key) ? 'critical' : 'warning' }]);
+  return keys.flatMap((key) =>
+    baseline[key] === actual[key]
+      ? []
+      : [
+          {
+            key,
+            expectedHash: baseline[key],
+            actualHash: actual[key],
+            severity: criticalKeys.has(key) ? 'critical' : 'warning',
+          },
+        ],
+  );
 }
 
 function stableHash(value: unknown): string {
-  return createHash('sha256').update(JSON.stringify(value, Object.keys(value as object).sort())).digest('hex');
+  return createHash('sha256')
+    .update(JSON.stringify(value, Object.keys(value as object).sort()))
+    .digest('hex');
 }

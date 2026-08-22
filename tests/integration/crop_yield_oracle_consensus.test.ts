@@ -15,11 +15,51 @@ describe('crop yield oracle consensus', () => {
   it('rejects a rogue report and keeps consensus within 5% of verified yield', () => {
     const trueYield = 6000;
     const reports: YieldReport[] = [
-      { farmId: 'farm-1', seasonId: '2026-main', sourceType: 'satellite', value: 5.95, unit: 'tonnes_per_hectare', timestamp: new Date('2026-07-19T00:00:00Z'), reporterId: 'sat-1' },
-      { farmId: 'farm-1', seasonId: '2026-main', sourceType: 'iot', value: 6020, unit: 'kg_per_hectare', timestamp: new Date('2026-07-19T00:15:00Z'), reporterId: 'soil-1' },
-      { farmId: 'farm-1', seasonId: '2026-main', sourceType: 'drone', value: 9000, unit: 'kg_per_hectare', timestamp: new Date('2026-07-19T00:30:00Z'), reporterId: 'drone-compromised' },
-      { farmId: 'farm-1', seasonId: '2026-main', sourceType: 'manual', value: 5980, unit: 'kg_per_hectare', timestamp: new Date('2026-07-19T01:00:00Z'), reporterId: 'agent-1' },
-      { farmId: 'farm-1', seasonId: '2026-main', sourceType: 'iot', value: 6075, unit: 'kg_per_hectare', timestamp: new Date('2026-07-19T01:10:00Z'), reporterId: 'soil-2' },
+      {
+        farmId: 'farm-1',
+        seasonId: '2026-main',
+        sourceType: 'satellite',
+        value: 5.95,
+        unit: 'tonnes_per_hectare',
+        timestamp: new Date('2026-07-19T00:00:00Z'),
+        reporterId: 'sat-1',
+      },
+      {
+        farmId: 'farm-1',
+        seasonId: '2026-main',
+        sourceType: 'iot',
+        value: 6020,
+        unit: 'kg_per_hectare',
+        timestamp: new Date('2026-07-19T00:15:00Z'),
+        reporterId: 'soil-1',
+      },
+      {
+        farmId: 'farm-1',
+        seasonId: '2026-main',
+        sourceType: 'drone',
+        value: 9000,
+        unit: 'kg_per_hectare',
+        timestamp: new Date('2026-07-19T00:30:00Z'),
+        reporterId: 'drone-compromised',
+      },
+      {
+        farmId: 'farm-1',
+        seasonId: '2026-main',
+        sourceType: 'manual',
+        value: 5980,
+        unit: 'kg_per_hectare',
+        timestamp: new Date('2026-07-19T01:00:00Z'),
+        reporterId: 'agent-1',
+      },
+      {
+        farmId: 'farm-1',
+        seasonId: '2026-main',
+        sourceType: 'iot',
+        value: 6075,
+        unit: 'kg_per_hectare',
+        timestamp: new Date('2026-07-19T01:10:00Z'),
+        reporterId: 'soil-2',
+      },
     ];
 
     const normalized = normalizeYieldReports(reports);

@@ -23,7 +23,9 @@ describe('OpenAPI contract validation middleware', () => {
         return res.status(200).json({ unexpected: true });
       }
 
-      return res.status(200).json({ message: 'Certificate minted successfully', certificate_id: 'cert-123' });
+      return res
+        .status(200)
+        .json({ message: 'Certificate minted successfully', certificate_id: 'cert-123' });
     });
 
     app.get('/openapi.json', async (req, res) => {
@@ -63,7 +65,10 @@ describe('OpenAPI contract validation middleware', () => {
       .expect(200);
 
     expect(response.headers['x-opencode-validation-warning']).toBe('true');
-    expect(response.body).toMatchObject({ message: 'Certificate minted successfully', certificate_id: 'cert-123' });
+    expect(response.body).toMatchObject({
+      message: 'Certificate minted successfully',
+      certificate_id: 'cert-123',
+    });
   });
 
   it('skips validation in off mode', async () => {
@@ -77,7 +82,10 @@ describe('OpenAPI contract validation middleware', () => {
 
     expect(response.headers['x-opencode-validation-warning']).toBeUndefined();
     expect(response.headers['x-opencode-validation-error']).toBeUndefined();
-    expect(response.body).toMatchObject({ message: 'Certificate minted successfully', certificate_id: 'cert-123' });
+    expect(response.body).toMatchObject({
+      message: 'Certificate minted successfully',
+      certificate_id: 'cert-123',
+    });
   });
 
   it('returns 500 when an outbound response violates the OpenAPI response schema in strict mode', async () => {

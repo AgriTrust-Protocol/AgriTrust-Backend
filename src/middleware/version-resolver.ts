@@ -47,7 +47,10 @@ export const versionResolver: RequestHandler = (req, res, next) => {
       res.setHeader('Sunset', config.metadata.sunsetDate);
     }
     if (config.metadata.migrationUrl) {
-      res.setHeader('Link', `<${config.metadata.migrationUrl}>; rel="deprecation"; type="text/html"`);
+      res.setHeader(
+        'Link',
+        `<${config.metadata.migrationUrl}>; rel="deprecation"; type="text/html"`,
+      );
     }
   }
 

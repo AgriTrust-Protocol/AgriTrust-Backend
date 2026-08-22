@@ -107,10 +107,7 @@ export class ConsumerLagMonitor {
       );
     }
 
-    totalLagGauge.set(
-      { service: snapshot.service, group_id: snapshot.groupId },
-      totalLag,
-    );
+    totalLagGauge.set({ service: snapshot.service, group_id: snapshot.groupId }, totalLag);
 
     return {
       groupId: snapshot.groupId,
@@ -158,12 +155,18 @@ export class ConsumerGroupAutoScaler {
           service: summary.service,
           desiredReplicas,
           action: desiredReplicas > state.currentReplicas ? 'scale_up' : 'none',
-          reason: desiredReplicas > state.currentReplicas ? 'lag_above_threshold' : 'max_replicas_reached',
+          reason:
+            desiredReplicas > state.currentReplicas
+              ? 'lag_above_threshold'
+              : 'max_replicas_reached',
           totalLag: summary.totalLag,
         });
       }
 
-      if (summary.totalLag <= policy.scaleDownLagThreshold && state.currentReplicas > policy.minReplicas) {
+      if (
+        summary.totalLag <= policy.scaleDownLagThreshold &&
+        state.currentReplicas > policy.minReplicas
+      ) {
         return this.record({
           groupId: summary.groupId,
           service: summary.service,

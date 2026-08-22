@@ -51,7 +51,7 @@ export class DrainController extends EventEmitter {
   private readonly states: Map<string, DrainEntry> = new Map();
   private graceTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
   private ackTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
-  private totalActive: number = 0;
+  private totalActive = 0;
 
   // ── State queries ───────────────────────────────────────────────────────
 

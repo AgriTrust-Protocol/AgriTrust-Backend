@@ -14,7 +14,10 @@ describe('precommit checks', () => {
   });
 
   it('detects common high-risk secret formats', () => {
-    const findings = scanFileForSecrets('config/example.ts', ['const ', 'token = ', '"abcdefghijklmnopqrstuvwxyz123456";'].join(''));
+    const findings = scanFileForSecrets(
+      'config/example.ts',
+      ['const ', 'token = ', '"abcdefghijklmnopqrstuvwxyz123456";'].join(''),
+    );
 
     expect(findings).toEqual(['config/example.ts: matched Generic token assignment']);
   });

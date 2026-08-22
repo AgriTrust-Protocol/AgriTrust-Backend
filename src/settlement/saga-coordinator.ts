@@ -1,16 +1,7 @@
 import { randomUUID } from 'crypto';
 import { SagaLogStore, SagaStatus } from '../database/saga_log';
-import {
-  CompensationHandler,
-  CompensationResult,
-} from './compensation-handler';
-import {
-  SagaContext,
-  SagaStep,
-  StepOutcome,
-  idempotencyKey,
-  withTimeout,
-} from './saga-step';
+import { CompensationHandler, CompensationResult } from './compensation-handler';
+import { SagaContext, SagaStep, StepOutcome, idempotencyKey, withTimeout } from './saga-step';
 
 export interface SagaDefinition {
   /** Stable name; used to reconstruct a saga for manual retry. */
@@ -141,9 +132,7 @@ export class SagaCoordinator {
 
     const def = this.definitions.get(execution.name);
     if (!def) {
-      throw new Error(
-        `No registered definition named "${execution.name}" to retry saga ${sagaId}`,
-      );
+      throw new Error(`No registered definition named "${execution.name}" to retry saga ${sagaId}`);
     }
 
     return this.execute(def, execution.context ?? {}, {
@@ -154,11 +143,7 @@ export class SagaCoordinator {
 
   // ── internals ──────────────────────────────────────────────────────────
 
-  private async run(
-    def: SagaDefinition,
-    ctx: SagaContext,
-    sagaId: string,
-  ): Promise<SagaResult> {
+  private async run(def: SagaDefinition, ctx: SagaContext, sagaId: string): Promise<SagaResult> {
     await this.log.updateSagaStatus(sagaId, 'executing', ctx);
 
     const completed: SagaStep[] = [];
@@ -192,11 +177,7 @@ export class SagaCoordinator {
       const effectiveTimeout = Math.min(this.config.stepTimeoutMs, remaining);
       let outcome: StepOutcome;
       try {
-        outcome = await withTimeout(
-          step.action(ctx),
-          effectiveTimeout,
-          `step:${step.id}`,
-        );
+        outcome = await withTimeout(step.action(ctx), effectiveTimeout, `step:${step.id}`);
       } catch (e) {
         outcome = {
           ok: false,
@@ -226,11 +207,7 @@ export class SagaCoordinator {
 
     // Failure path: compensate completed steps in reverse.
     await this.log.updateSagaStatus(sagaId, 'compensating', ctx);
-    const compensations = await this.compensator.compensate(
-      sagaId,
-      completed,
-      ctx,
-    );
+    const compensations = await this.compensator.compensate(sagaId, completed, ctx);
 
     const allCompensated = compensations.every((c) => c.success);
     const finalStatus: SagaStatus = allCompensated ? 'compensated' : 'failed';

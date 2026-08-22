@@ -37,17 +37,20 @@ describe('Key Rotation System', () => {
     it('should generate a new key within 100ms', async () => {
       mockQuery.mockResolvedValueOnce({ rows: [] }); // Update existing keys
       mockQuery.mockResolvedValueOnce({ rows: [] }); // Audit Grace
-      mockQuery.mockResolvedValueOnce({ // Insert new key
-        rows: [{
-          id: '1',
-          purpose: KeyPurpose.ATTESTATION,
-          type: KeyType.ED25519,
-          public_key: 'mock-pub',
-          encrypted_private_key: 'iv:mock-enc',
-          phase: KeyPhase.ACTIVE,
-          fingerprint: 'mock-fp',
-          created_at: new Date()
-        }]
+      mockQuery.mockResolvedValueOnce({
+        // Insert new key
+        rows: [
+          {
+            id: '1',
+            purpose: KeyPurpose.ATTESTATION,
+            type: KeyType.ED25519,
+            public_key: 'mock-pub',
+            encrypted_private_key: 'iv:mock-enc',
+            phase: KeyPhase.ACTIVE,
+            fingerprint: 'mock-fp',
+            created_at: new Date(),
+          },
+        ],
       });
       mockQuery.mockResolvedValueOnce({ rows: [] }); // Audit Active
       mockQuery.mockResolvedValueOnce({ rows: [] }); // Enforce max 2
@@ -64,7 +67,9 @@ describe('Key Rotation System', () => {
 
     it('should throw if KEY_ENCRYPTION_MASTER_KEY is missing', async () => {
       delete process.env.KEY_ENCRYPTION_MASTER_KEY;
-      await expect(orchestrator.rotateKey(KeyPurpose.ATTESTATION)).rejects.toThrow('KEY_ENCRYPTION_MASTER_KEY environment variable is not set');
+      await expect(orchestrator.rotateKey(KeyPurpose.ATTESTATION)).rejects.toThrow(
+        'KEY_ENCRYPTION_MASTER_KEY environment variable is not set',
+      );
     });
   });
 
@@ -79,7 +84,7 @@ describe('Key Rotation System', () => {
         publicKey: 'hmac-sha256-symmetric',
         encryptedPrivateKey: orchestrator['encryptPrivateKey']('active-secret', masterKey),
         phase: KeyPhase.ACTIVE,
-        fingerprint: 'fp-active'
+        fingerprint: 'fp-active',
       };
       const graceKey = {
         id: '1',
@@ -88,28 +93,54 @@ describe('Key Rotation System', () => {
         publicKey: 'hmac-sha256-symmetric',
         encryptedPrivateKey: orchestrator['encryptPrivateKey']('grace-secret', masterKey),
         phase: KeyPhase.GRACE,
-        fingerprint: 'fp-grace'
+        fingerprint: 'fp-grace',
       };
 
       // Mock getAllActive to return both
       mockQuery.mockResolvedValueOnce({
         rows: [
-            { ...activeKey, public_key: activeKey.publicKey, encrypted_private_key: activeKey.encryptedPrivateKey, created_at: new Date() },
-            { ...graceKey, public_key: graceKey.publicKey, encrypted_private_key: graceKey.encryptedPrivateKey, created_at: new Date() }
-        ]
+          {
+            ...activeKey,
+            public_key: activeKey.publicKey,
+            encrypted_private_key: activeKey.encryptedPrivateKey,
+            created_at: new Date(),
+          },
+          {
+            ...graceKey,
+            public_key: graceKey.publicKey,
+            encrypted_private_key: graceKey.encryptedPrivateKey,
+            created_at: new Date(),
+          },
+        ],
       });
 
-      const activeSig = require('crypto').createHmac('sha256', 'active-secret').update(data).digest('hex');
-      const graceSig = require('crypto').createHmac('sha256', 'grace-secret').update(data).digest('hex');
+      const activeSig = require('crypto')
+        .createHmac('sha256', 'active-secret')
+        .update(data)
+        .digest('hex');
+      const graceSig = require('crypto')
+        .createHmac('sha256', 'grace-secret')
+        .update(data)
+        .digest('hex');
 
       expect(await verifier.verify(KeyPurpose.WEBHOOK, data, activeSig)).toBe(true);
 
       // Re-mock for second call
       mockQuery.mockResolvedValueOnce({
         rows: [
-            { ...activeKey, public_key: activeKey.publicKey, encrypted_private_key: activeKey.encryptedPrivateKey, created_at: new Date() },
-            { ...graceKey, public_key: graceKey.publicKey, encrypted_private_key: graceKey.encryptedPrivateKey, created_at: new Date() }
-        ]
+          {
+            ...activeKey,
+            public_key: activeKey.publicKey,
+            encrypted_private_key: activeKey.encryptedPrivateKey,
+            created_at: new Date(),
+          },
+          {
+            ...graceKey,
+            public_key: graceKey.publicKey,
+            encrypted_private_key: graceKey.encryptedPrivateKey,
+            created_at: new Date(),
+          },
+        ],
       });
       expect(await verifier.verify(KeyPurpose.WEBHOOK, data, graceSig)).toBe(true);
     });
@@ -124,13 +155,16 @@ describe('Key Rotation System', () => {
         publicKey: 'hmac-sha256-symmetric',
         encryptedPrivateKey: orchestrator['encryptPrivateKey']('retired-secret', masterKey),
         phase: KeyPhase.RETIRED,
-        fingerprint: 'fp-retired'
+        fingerprint: 'fp-retired',
       };
 
       // Mock getAllActive to return empty (since retired is not active/grace)
       mockQuery.mockResolvedValueOnce({ rows: [] });
 
-      const retiredSig = require('crypto').createHmac('sha256', 'retired-secret').update(data).digest('hex');
+      const retiredSig = require('crypto')
+        .createHmac('sha256', 'retired-secret')
+        .update(data)
+        .digest('hex');
       expect(await verifier.verify(KeyPurpose.WEBHOOK, data, retiredSig)).toBe(false);
     });
   });

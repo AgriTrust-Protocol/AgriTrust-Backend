@@ -20,9 +20,15 @@ export class SchemaRegistry {
   }
 
   loadFromDirectory(schemaDir = path.join(__dirname, '..', 'schemas', 'telemetry')): void {
-    const files = fs.readdirSync(schemaDir).filter((file) => /^v\d+\.json$/.test(file)).sort();
+    const files = fs
+      .readdirSync(schemaDir)
+      .filter((file) => /^v\d+\.json$/.test(file))
+      .sort();
     for (const file of files) {
-      const schema = JSON.parse(fs.readFileSync(path.join(schemaDir, file), 'utf8')) as Record<string, unknown>;
+      const schema = JSON.parse(fs.readFileSync(path.join(schemaDir, file), 'utf8')) as Record<
+        string,
+        unknown
+      >;
       const id = schema.$id;
       if (typeof id !== 'string') throw new Error(`Schema ${file} is missing string $id`);
       this.register(id, path.basename(file, '.json'), schema);
@@ -47,7 +53,9 @@ export class SchemaRegistry {
     const schema = this.resolve(version);
     if (!schema) throw new Error(`Unknown schema version: ${version}`);
     if (!schema.validate(payload)) {
-      throw new Error(`Invalid ${version} telemetry payload: ${this.ajv.errorsText(schema.validate.errors)}`);
+      throw new Error(
+        `Invalid ${version} telemetry payload: ${this.ajv.errorsText(schema.validate.errors)}`,
+      );
     }
   }
 

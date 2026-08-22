@@ -57,9 +57,7 @@ class SnapshotCodec {
     let json: Buffer;
     if (codec === CodecId.Snappy) {
       if (!this.snappy) {
-        throw new Error(
-          'Snapshot was snappy-compressed but the snappy module is not installed',
-        );
+        throw new Error('Snapshot was snappy-compressed but the snappy module is not installed');
       }
       json = this.snappy.uncompressSync(body, { asBuffer: true }) as Buffer;
     } else if (codec === CodecId.Gzip) {
@@ -111,11 +109,7 @@ export class Snapshotter<S> {
    */
   async createSnapshot(streamId: string): Promise<number | null> {
     return timed('snapshot', async () => {
-      const events = await this.persistence.readStreamEvents(
-        streamId,
-        0,
-        MAX_REHYDRATE_EVENTS,
-      );
+      const events = await this.persistence.readStreamEvents(streamId, 0, MAX_REHYDRATE_EVENTS);
       if (events.length === 0) return null;
 
       const state = this.fold(this.initialState(), events);
@@ -155,8 +149,7 @@ export class Snapshotter<S> {
       );
       state = this.fold(state, events);
 
-      const version =
-        events.length > 0 ? events[events.length - 1].streamVersion : baseVersion;
+      const version = events.length > 0 ? events[events.length - 1].streamVersion : baseVersion;
 
       return { state, version, fromSnapshot };
     });

@@ -3,12 +3,8 @@ import { NextFunction, Request, Response } from 'express';
 import { TLSSocket } from 'tls';
 import { DeviceRegistry } from '../../devices/registry';
 
-
 function normalizeHex(value: string): string {
-  return value
-    .replace(/^0x/i, '')
-    .replace(/[:\s]/g, '')
-    .toLowerCase();
+  return value.replace(/^0x/i, '').replace(/[:\s]/g, '').toLowerCase();
 }
 
 function extractDeviceId(subject: Record<string, unknown> | undefined): string | null {

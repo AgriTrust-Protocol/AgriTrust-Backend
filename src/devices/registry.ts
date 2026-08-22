@@ -71,7 +71,10 @@ export class DeviceRegistry {
       throw new AuthError('Device certificate has been revoked');
     }
 
-    const result = await this.pool.query<DeviceRecord>(SELECT_DEVICE_BY_CERT, [serialHex, fingerprint]);
+    const result = await this.pool.query<DeviceRecord>(SELECT_DEVICE_BY_CERT, [
+      serialHex,
+      fingerprint,
+    ]);
 
     if (result.rowCount === 0 || !result.rows[0]) {
       throw new AuthError('Device certificate is not registered, has been revoked, or has expired');

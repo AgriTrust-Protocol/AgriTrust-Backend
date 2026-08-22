@@ -58,11 +58,7 @@ export const httpRequestsTotal = new Counter({
  * params to `:param` placeholders), falling back to `req.path` for
  * unmatched routes (e.g. 404s).
  */
-export function metricsMiddleware(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void {
+export function metricsMiddleware(req: Request, res: Response, next: NextFunction): void {
   const start = process.hrtime.bigint();
 
   // Capture the original end() to intercept the response
@@ -76,8 +72,7 @@ export function metricsMiddleware(
     const durationSec = durationNs / 1e9;
 
     // Derive route label — use Express's normalised pattern or fall back to path
-    const route: string =
-      (req as any).route?.path ?? req.path ?? 'unknown';
+    const route: string = (req as any).route?.path ?? req.path ?? 'unknown';
 
     const method = req.method;
     const statusCode = String(res.statusCode);
@@ -91,8 +86,16 @@ export function metricsMiddleware(
 
     // Observe metrics with exemplar support (trace_id linked when available)
     const traceCtx = traceContextFrom(req);
-    observeWithExemplar(httpRequestDuration, durationSec, traceCtx, { method, route, status_code: statusCode });
-    observeWithExemplar(httpResponseSize, responseBodyBytes, traceCtx, { method, route, status_code: statusCode });
+    observeWithExemplar(httpRequestDuration, durationSec, traceCtx, {
+      method,
+      route,
+      status_code: statusCode,
+    });
+    observeWithExemplar(httpResponseSize, responseBodyBytes, traceCtx, {
+      method,
+      route,
+      status_code: statusCode,
+    });
     httpRequestsTotal.inc({ method, route, status_code: statusCode });
 
     // Call the original end()

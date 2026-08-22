@@ -19,7 +19,11 @@ export class PayloadMigrator {
     ['v2->v3', this.v2ToV3.bind(this)],
   ]);
 
-  migrate(payload: Json, fromVersion: string, toVersion = CANONICAL_TELEMETRY_VERSION): TelemetryRecord {
+  migrate(
+    payload: Json,
+    fromVersion: string,
+    toVersion = CANONICAL_TELEMETRY_VERSION,
+  ): TelemetryRecord {
     if (fromVersion === toVersion) return this.toCanonical(payload);
     let current = payload;
     let version = fromVersion;
@@ -27,16 +31,21 @@ export class PayloadMigrator {
     for (let i = 0; version !== toVersion && i < guard; i += 1) {
       const next = this.nextVersion(version, toVersion);
       const migration = this.migrations.get(`${version}->${next}`);
-      if (!migration) throw new Error(`No telemetry migration path from ${version} to ${toVersion}`);
+      if (!migration)
+        throw new Error(`No telemetry migration path from ${version} to ${toVersion}`);
       current = migration(current);
       version = next;
     }
-    if (version !== toVersion) throw new Error(`No telemetry migration path from ${fromVersion} to ${toVersion}`);
+    if (version !== toVersion)
+      throw new Error(`No telemetry migration path from ${fromVersion} to ${toVersion}`);
     return this.toCanonical(current);
   }
 
   v1ToV2(payload: Json): Json {
-    const gps = typeof payload.lat === 'number' && typeof payload.lon === 'number' ? { lat: payload.lat, lon: payload.lon } : undefined;
+    const gps =
+      typeof payload.lat === 'number' && typeof payload.lon === 'number'
+        ? { lat: payload.lat, lon: payload.lon }
+        : undefined;
     return {
       schema_version: 'v2',
       deviceId: payload.device_id,
@@ -58,7 +67,10 @@ export class PayloadMigrator {
       humidity: payload.humidity,
       shock: payload.shock,
       gps: payload.gps,
-      metadata: { ...(payload.metadata as Json | undefined), source_schema_version: payload.schema_version ?? 'v2' },
+      metadata: {
+        ...(payload.metadata as Json | undefined),
+        source_schema_version: payload.schema_version ?? 'v2',
+      },
     };
   }
 

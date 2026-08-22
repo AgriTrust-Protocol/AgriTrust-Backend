@@ -1,7 +1,11 @@
 import { RATE_LIMIT_MAX_WINDOW_ENTRIES } from '../config/rate-limits';
 
 export interface RedisSortedSetClient {
-  eval(script: string, numberOfKeys: number, ...args: Array<string | number>): Promise<number | string>;
+  eval(
+    script: string,
+    numberOfKeys: number,
+    ...args: Array<string | number>
+  ): Promise<number | string>;
 }
 
 export interface AllowResult {
@@ -49,7 +53,7 @@ export class SlidingWindowCounter {
     private readonly maxEntries: number = RATE_LIMIT_MAX_WINDOW_ENTRIES,
   ) {}
 
-  async allow(key: string, limit: number, cost: number = 1): Promise<AllowResult> {
+  async allow(key: string, limit: number, cost = 1): Promise<AllowResult> {
     const boundedCost = this.toUint64(cost, 'cost');
     const boundedLimit = this.toUint64(limit, 'limit');
     const nowMicros = Date.now() * 1000;

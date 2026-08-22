@@ -14,10 +14,7 @@
  */
 
 import { EventEmitter } from 'events';
-import {
-  QUIESCENCE_TIMEOUT_S,
-  SCAN_TICK_INTERVAL_MS,
-} from '../config/websocket';
+import { QUIESCENCE_TIMEOUT_S, SCAN_TICK_INTERVAL_MS } from '../config/websocket';
 import { RingBuffer, LifecycleEntry } from './ring-buffer';
 import { DrainController, ConnectionState, SocketHandle } from './drain-controller';
 import { TelemetryChannel, FrameHandler } from './telemetry-channel';
@@ -52,16 +49,23 @@ export class ConnectionManager extends EventEmitter {
     this.lifecycleBuffer = new RingBuffer<LifecycleEntry>(bufferCapacity);
 
     // Wire drain-controller events to lifecycle recording
-    this.drainController.on('connection_closed', (socketId: string, info: { rst: boolean; durationMs: number }) => {
-      this.recordClose(socketId);
-      this.emit('connection_closed', socketId, info);
-    });
+    this.drainController.on(
+      'connection_closed',
+      (socketId: string, info: { rst: boolean; durationMs: number }) => {
+        this.recordClose(socketId);
+        this.emit('connection_closed', socketId, info);
+      },
+    );
   }
 
   // ── Connection Lifecycle ──────────────────────────────────────────────
 
   /** Register a new WebSocket connection. */
-  addConnection(socketId: string, handle: SocketHandle, frameHandler?: FrameHandler): TelemetryChannel {
+  addConnection(
+    socketId: string,
+    handle: SocketHandle,
+    frameHandler?: FrameHandler,
+  ): TelemetryChannel {
     const now = Date.now();
     this.drainController.register(socketId);
 

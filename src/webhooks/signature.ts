@@ -13,8 +13,14 @@ export function canonicalWebhookPayload(timestamp: number, body: string): string
   return `${timestamp}.${body}`;
 }
 
-export function signWebhookPayload(secret: string, body: string, timestamp = Math.floor(Date.now() / 1000)): string {
-  const digest = createHmac('sha256', secret).update(canonicalWebhookPayload(timestamp, body)).digest('hex');
+export function signWebhookPayload(
+  secret: string,
+  body: string,
+  timestamp = Math.floor(Date.now() / 1000),
+): string {
+  const digest = createHmac('sha256', secret)
+    .update(canonicalWebhookPayload(timestamp, body))
+    .digest('hex');
   return `${WEBHOOK_SIGNATURE_VERSION}=${digest}`;
 }
 
@@ -24,14 +30,30 @@ export function parseWebhookSignature(header: string): string | null {
   return versioned?.slice(`${WEBHOOK_SIGNATURE_VERSION}=`.length) ?? null;
 }
 
-export function verifyWebhookSignature(input: { secret: string; body: string; timestamp: number; signatureHeader: string; toleranceSeconds?: number; nowSeconds?: number }): boolean {
+export function verifyWebhookSignature(input: {
+  secret: string;
+  body: string;
+  timestamp: number;
+  signatureHeader: string;
+  toleranceSeconds?: number;
+  nowSeconds?: number;
+}): boolean {
   const toleranceSeconds = input.toleranceSeconds ?? 300;
   const nowSeconds = input.nowSeconds ?? Math.floor(Date.now() / 1000);
-  if (!Number.isFinite(input.timestamp) || Math.abs(nowSeconds - input.timestamp) > toleranceSeconds) return false;
+  if (
+    !Number.isFinite(input.timestamp) ||
+    Math.abs(nowSeconds - input.timestamp) > toleranceSeconds
+  )
+    return false;
   const provided = parseWebhookSignature(input.signatureHeader);
   if (!provided) return false;
-  const expected = signWebhookPayload(input.secret, input.body, input.timestamp).slice(`${WEBHOOK_SIGNATURE_VERSION}=`.length);
+  const expected = signWebhookPayload(input.secret, input.body, input.timestamp).slice(
+    `${WEBHOOK_SIGNATURE_VERSION}=`.length,
+  );
   const providedBuffer = Buffer.from(provided, 'hex');
   const expectedBuffer = Buffer.from(expected, 'hex');
-  return providedBuffer.length === expectedBuffer.length && timingSafeEqual(providedBuffer, expectedBuffer);
+  return (
+    providedBuffer.length === expectedBuffer.length &&
+    timingSafeEqual(providedBuffer, expectedBuffer)
+  );
 }

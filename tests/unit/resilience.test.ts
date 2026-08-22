@@ -53,14 +53,20 @@ describe('CapacityShedder', () => {
   it('sheds background traffic before important traffic', () => {
     const signal = { inflight: 75, eventLoopLagMs: 0, cpuUtilization: 0, memoryUtilization: 0 };
 
-    expect(shedder.decide('background', signal)).toMatchObject({ allowed: false, reason: 'background-capacity-shed' });
+    expect(shedder.decide('background', signal)).toMatchObject({
+      allowed: false,
+      reason: 'background-capacity-shed',
+    });
     expect(shedder.decide('important', signal)).toMatchObject({ allowed: true, degraded: true });
   });
 
   it('sheds important traffic only at the higher threshold', () => {
     const signal = { inflight: 95, eventLoopLagMs: 0, cpuUtilization: 0, memoryUtilization: 0 };
 
-    expect(shedder.decide('important', signal)).toMatchObject({ allowed: false, reason: 'important-capacity-shed' });
+    expect(shedder.decide('important', signal)).toMatchObject({
+      allowed: false,
+      reason: 'important-capacity-shed',
+    });
   });
 });
 
@@ -71,6 +77,8 @@ describe('classifyRequest', () => {
   });
 
   it('classifies webhook routes as background', () => {
-    expect(classifyRequest({ method: 'POST', path: '/api/admin/webhooks/retry' })).toBe('background');
+    expect(classifyRequest({ method: 'POST', path: '/api/admin/webhooks/retry' })).toBe(
+      'background',
+    );
   });
 });

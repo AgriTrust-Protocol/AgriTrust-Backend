@@ -17,12 +17,7 @@ import { TransportNetwork, Node, Edge } from '../../src/inventory/models';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeNode(
-  id: string,
-  inventoryAvailable: number,
-  capacity: number = 1000,
-  outflowRate: number = 10,
-): Node {
+function makeNode(id: string, inventoryAvailable: number, capacity = 1000, outflowRate = 10): Node {
   return { id, inventoryAvailable, capacity, outflowRate, qualityProfile: {} };
 }
 
@@ -200,20 +195,14 @@ describe('optimizeReallocation — 5-node network', () => {
   it('plans are ranked ascending by costPerTon', () => {
     const result = optimizeReallocation({ network, demand });
     for (let i = 1; i < result.plans.length; i++) {
-      expect(result.plans[i].costPerTon).toBeGreaterThanOrEqual(
-        result.plans[i - 1].costPerTon,
-      );
+      expect(result.plans[i].costPerTon).toBeGreaterThanOrEqual(result.plans[i - 1].costPerTon);
     }
   });
 
   it('S2→D2 route is preferred over S1→D2 (cheaper cost per ton)', () => {
     const result = optimizeReallocation({ network, demand });
-    const s2d2 = result.plans.find(
-      (p) => p.sourceSiloId === 'S2' && p.destSiloId === 'D2',
-    );
-    const s1d2 = result.plans.find(
-      (p) => p.sourceSiloId === 'S1' && p.destSiloId === 'D2',
-    );
+    const s2d2 = result.plans.find((p) => p.sourceSiloId === 'S2' && p.destSiloId === 'D2');
+    const s1d2 = result.plans.find((p) => p.sourceSiloId === 'S1' && p.destSiloId === 'D2');
     // S2→D2 should appear; S1→D2 (expensive) should not be routed if S2 has enough
     expect(s2d2).toBeDefined();
     if (s1d2) {

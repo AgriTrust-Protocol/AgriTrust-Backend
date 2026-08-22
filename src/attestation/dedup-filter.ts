@@ -88,9 +88,7 @@ export class DedupFilter {
   static deserialise(data: Uint8Array, itemCount: number): DedupFilter {
     const filter = new DedupFilter();
     if (data.length !== BLOOM_FILTER_BYTES) {
-      throw new Error(
-        `Expected ${BLOOM_FILTER_BYTES} bytes, got ${data.length}`,
-      );
+      throw new Error(`Expected ${BLOOM_FILTER_BYTES} bytes, got ${data.length}`);
     }
     filter.bits = new Uint8Array(data);
     filter.itemCount = itemCount;

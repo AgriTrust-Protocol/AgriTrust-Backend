@@ -76,27 +76,52 @@ export class HistoricalUsagePlanner {
   forecast(service: string, resource: UsageSample['resource']): CapacityForecast {
     const series = this.samples.get(sampleKey(service, resource)) ?? [];
     if (series.length < this.options.minSamples) {
-      throw new Error(`at least ${this.options.minSamples} samples are required for ${service}/${resource}`);
+      throw new Error(
+        `at least ${this.options.minSamples} samples are required for ${service}/${resource}`,
+      );
     }
 
     const first = series[0];
     const latest = series[series.length - 1];
-    const elapsedHours = Math.max(1 / 60, (latest.timestamp.getTime() - first.timestamp.getTime()) / 3_600_000);
+    const elapsedHours = Math.max(
+      1 / 60,
+      (latest.timestamp.getTime() - first.timestamp.getTime()) / 3_600_000,
+    );
     const firstUtilization = utilization(first);
     const currentUtilization = utilization(latest);
     const growthPerHour = Math.max(0, (currentUtilization - firstUtilization) / elapsedHours);
-    const projectedUtilization = clamp01(currentUtilization + growthPerHour * this.options.horizonHours);
-    const hoursToThreshold = growthPerHour > 0 && currentUtilization < this.options.criticalThreshold
-      ? (this.options.criticalThreshold - currentUtilization) / growthPerHour
-      : currentUtilization >= this.options.criticalThreshold ? 0 : null;
-    const recommendedCapacity = Math.ceil(Math.max(latest.capacity, latest.used / this.options.targetUtilization));
-    const recommendation = this.recommendation(currentUtilization, projectedUtilization, hoursToThreshold);
+    const projectedUtilization = clamp01(
+      currentUtilization + growthPerHour * this.options.horizonHours,
+    );
+    const hoursToThreshold =
+      growthPerHour > 0 && currentUtilization < this.options.criticalThreshold
+        ? (this.options.criticalThreshold - currentUtilization) / growthPerHour
+        : currentUtilization >= this.options.criticalThreshold
+          ? 0
+          : null;
+    const recommendedCapacity = Math.ceil(
+      Math.max(latest.capacity, latest.used / this.options.targetUtilization),
+    );
+    const recommendation = this.recommendation(
+      currentUtilization,
+      projectedUtilization,
+      hoursToThreshold,
+    );
 
     currentUsageGauge.set({ service, resource }, currentUtilization);
     projectedUsageGauge.set({ service, resource }, projectedUtilization);
     hoursToThresholdGauge.set({ service, resource }, hoursToThreshold ?? -1);
 
-    return { service, resource, currentUtilization, projectedUtilization, growthPerHour, hoursToThreshold, recommendation, recommendedCapacity };
+    return {
+      service,
+      resource,
+      currentUtilization,
+      projectedUtilization,
+      growthPerHour,
+      hoursToThreshold,
+      recommendation,
+      recommendedCapacity,
+    };
   }
 
   forecastAll(): CapacityForecast[] {
@@ -106,8 +131,16 @@ export class HistoricalUsagePlanner {
     });
   }
 
-  private recommendation(current: number, projected: number, hoursToThreshold: number | null): CapacityForecast['recommendation'] {
-    if (current >= this.options.criticalThreshold || (hoursToThreshold !== null && hoursToThreshold <= 24)) return 'urgent';
+  private recommendation(
+    current: number,
+    projected: number,
+    hoursToThreshold: number | null,
+  ): CapacityForecast['recommendation'] {
+    if (
+      current >= this.options.criticalThreshold ||
+      (hoursToThreshold !== null && hoursToThreshold <= 24)
+    )
+      return 'urgent';
     if (projected >= this.options.criticalThreshold) return 'scale';
     if (projected >= this.options.warningThreshold) return 'watch';
     return 'hold';

@@ -90,7 +90,8 @@ export class StructuredLogger {
   }
 
   log(level: LogLevel, message: string, attributes: LogAttributes = {}) {
-    const spanContext = trace.getSpanContext(context.active()) ?? trace.getSpan(context.active())?.spanContext();
+    const spanContext =
+      trace.getSpanContext(context.active()) ?? trace.getSpan(context.active())?.spanContext();
     const sanitizedAttributes = this.redact(attributes);
     const record = {
       timestamp: this.clock().toISOString(),

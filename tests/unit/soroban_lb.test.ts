@@ -35,8 +35,8 @@ describe('Soroban Load Balancer', () => {
 
       const nodes = rpcPool.getNodes();
       expect(nodes).toHaveLength(2);
-      expect(nodes.map(n => n.url)).toContain('http://node1.example.com:8000');
-      expect(nodes.map(n => n.url)).toContain('http://node2.example.com:8000');
+      expect(nodes.map((n) => n.url)).toContain('http://node1.example.com:8000');
+      expect(nodes.map((n) => n.url)).toContain('http://node2.example.com:8000');
     });
   });
 
@@ -58,7 +58,7 @@ describe('Soroban Load Balancer', () => {
     it('should recover node status from DEGRADED to ACTIVE', () => {
       const nodeUrl = 'http://node1:8000';
       healthChecker.registerNode(nodeUrl);
-      for(let i=0; i<3; i++) healthChecker.recordCheck(nodeUrl, false);
+      for (let i = 0; i < 3; i++) healthChecker.recordCheck(nodeUrl, false);
       expect(healthChecker.getStatus(nodeUrl).status).toBe(NodeStatus.DEGRADED);
 
       healthChecker.startRecovery(nodeUrl);
@@ -69,7 +69,9 @@ describe('Soroban Load Balancer', () => {
 
   describe('RpcLoadBalancer Selection', () => {
     it('should use connection affinity if (sourceLedger, nonce) is provided', async () => {
-      vi.mocked(dns.resolveSrv).mockResolvedValue([{ name: 'node1', port: 80, priority: 1, weight: 1 }]);
+      vi.mocked(dns.resolveSrv).mockResolvedValue([
+        { name: 'node1', port: 80, priority: 1, weight: 1 },
+      ]);
       await rpcPool.start();
 
       const affinity: AffinityKey = { sourceLedger: 'L1', nonce: 'N1' };
@@ -81,65 +83,69 @@ describe('Soroban Load Balancer', () => {
     });
 
     it('should perform weighted selection based on latency', async () => {
-        vi.mocked(dns.resolveSrv).mockResolvedValue([
-            { name: 'fast-node', port: 80, priority: 1, weight: 1 },
-            { name: 'slow-node', port: 80, priority: 1, weight: 1 }
-        ]);
-        await rpcPool.start();
+      vi.mocked(dns.resolveSrv).mockResolvedValue([
+        { name: 'fast-node', port: 80, priority: 1, weight: 1 },
+        { name: 'slow-node', port: 80, priority: 1, weight: 1 },
+      ]);
+      await rpcPool.start();
 
-        healthChecker.recordCheck('http://fast-node:80', true, 50);
-        healthChecker.recordCheck('http://slow-node:80', true, 500);
+      healthChecker.recordCheck('http://fast-node:80', true, 50);
+      healthChecker.recordCheck('http://slow-node:80', true, 500);
 
-        let fastCount = 0;
-        for(let i=0; i<100; i++) {
-            if (loadBalancer.select() === 'http://fast-node:80') fastCount++;
-        }
-        expect(fastCount).toBeGreaterThan(80);
+      let fastCount = 0;
+      for (let i = 0; i < 100; i++) {
+        if (loadBalancer.select() === 'http://fast-node:80') fastCount++;
+      }
+      expect(fastCount).toBeGreaterThan(80);
     });
 
     it('should mark node DEGRADED when circuit breaker trips via reportResult', async () => {
-        const nodeUrl = 'http://broken-node:80';
-        vi.mocked(dns.resolveSrv).mockResolvedValue([{ name: 'broken-node', port: 80, priority: 1, weight: 1 }]);
-        await rpcPool.start();
+      const nodeUrl = 'http://broken-node:80';
+      vi.mocked(dns.resolveSrv).mockResolvedValue([
+        { name: 'broken-node', port: 80, priority: 1, weight: 1 },
+      ]);
+      await rpcPool.start();
 
-        for(let i=0; i<5; i++) {
-          await loadBalancer.reportResult(nodeUrl, false);
-        }
+      for (let i = 0; i < 5; i++) {
+        await loadBalancer.reportResult(nodeUrl, false);
+      }
 
-        const node = rpcPool.getNodes()[0];
-        expect(node.circuitBreaker.getState()).toBe(CircuitState.OPEN);
-        expect(healthChecker.getStatus(nodeUrl).status).toBe(NodeStatus.DEGRADED);
-      });
+      const node = rpcPool.getNodes()[0];
+      expect(node.circuitBreaker.getState()).toBe(CircuitState.OPEN);
+      expect(healthChecker.getStatus(nodeUrl).status).toBe(NodeStatus.DEGRADED);
+    });
 
     it('should skip nodes with open circuit breakers', async () => {
-        vi.mocked(dns.resolveSrv).mockResolvedValue([
-            { name: 'healthy', port: 80, priority: 1, weight: 1 },
-            { name: 'broken', port: 80, priority: 1, weight: 1 }
-        ]);
-        await rpcPool.start();
+      vi.mocked(dns.resolveSrv).mockResolvedValue([
+        { name: 'healthy', port: 80, priority: 1, weight: 1 },
+        { name: 'broken', port: 80, priority: 1, weight: 1 },
+      ]);
+      await rpcPool.start();
 
-        for(let i=0; i<5; i++) {
-            await loadBalancer.reportResult('http://broken:80', false);
-        }
+      for (let i = 0; i < 5; i++) {
+        await loadBalancer.reportResult('http://broken:80', false);
+      }
 
-        for(let i=0; i<10; i++) {
-            expect(loadBalancer.select()).toBe('http://healthy:80');
-        }
+      for (let i = 0; i < 10; i++) {
+        expect(loadBalancer.select()).toBe('http://healthy:80');
+      }
     });
 
     it('should handle gradual weight restoration over 120s', async () => {
-        const nodeUrl = 'http://node1:80';
-        vi.mocked(dns.resolveSrv).mockResolvedValue([{ name: 'node1', port: 80, priority: 1, weight: 1 }]);
-        await rpcPool.start();
+      const nodeUrl = 'http://node1:80';
+      vi.mocked(dns.resolveSrv).mockResolvedValue([
+        { name: 'node1', port: 80, priority: 1, weight: 1 },
+      ]);
+      await rpcPool.start();
 
-        for(let i=0; i<3; i++) healthChecker.recordCheck(nodeUrl, false);
-        expect(healthChecker.getStatus(nodeUrl).status).toBe(NodeStatus.DEGRADED);
+      for (let i = 0; i < 3; i++) healthChecker.recordCheck(nodeUrl, false);
+      expect(healthChecker.getStatus(nodeUrl).status).toBe(NodeStatus.DEGRADED);
 
-        healthChecker.startRecovery(nodeUrl);
-        vi.advanceTimersByTime(121000);
+      healthChecker.startRecovery(nodeUrl);
+      vi.advanceTimersByTime(121000);
 
-        loadBalancer.select();
-        expect(healthChecker.getStatus(nodeUrl).status).toBe(NodeStatus.ACTIVE);
-      });
+      loadBalancer.select();
+      expect(healthChecker.getStatus(nodeUrl).status).toBe(NodeStatus.ACTIVE);
+    });
   });
 });

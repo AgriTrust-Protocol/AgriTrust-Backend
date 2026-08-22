@@ -35,19 +35,10 @@ export class EventStream<S> {
    * itself is atomic; the post-append snapshot is best-effort and never fails
    * the write.
    */
-  async append(
-    events: NewEvent[],
-    expectedVersion: number,
-  ): Promise<AppendResult> {
-    const appended = await this.persistence.appendEvents(
-      this.streamId,
-      events,
-      expectedVersion,
-    );
+  async append(events: NewEvent[], expectedVersion: number): Promise<AppendResult> {
+    const appended = await this.persistence.appendEvents(this.streamId, events, expectedVersion);
     const version =
-      appended.length > 0
-        ? appended[appended.length - 1].streamVersion
-        : expectedVersion;
+      appended.length > 0 ? appended[appended.length - 1].streamVersion : expectedVersion;
 
     let snapshotVersion: number | null = null;
     if (this.snapshotter.shouldSnapshot(version)) {

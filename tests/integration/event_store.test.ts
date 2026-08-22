@@ -7,10 +7,7 @@ import {
 } from '../../src/event-store/persistence';
 import { Snapshotter } from '../../src/event-store/snapshotter';
 import { EventStore } from '../../src/event-store/stream';
-import {
-  ColdStorageArchiver,
-  ObjectStore,
-} from '../../src/event-store/cold-storage';
+import { ColdStorageArchiver, ObjectStore } from '../../src/event-store/cold-storage';
 import {
   ConcurrencyConflictError,
   MAX_EVENT_PAYLOAD_BYTES,
@@ -32,9 +29,7 @@ class FakePersistence implements EventPersistence {
 
   async getCurrentVersion(streamId: string): Promise<number> {
     const forStream = this.events.filter((e) => e.streamId === streamId);
-    return forStream.length === 0
-      ? 0
-      : Math.max(...forStream.map((e) => e.streamVersion));
+    return forStream.length === 0 ? 0 : Math.max(...forStream.map((e) => e.streamVersion));
   }
 
   async appendEvents(
@@ -132,10 +127,7 @@ describe('EventStore — append & optimistic concurrency', () => {
 
   it('appends events and advances the stream version', async () => {
     const stream = store.stream(STREAM);
-    const res = await stream.append(
-      [{ eventType: 'Incremented', data: { amount: 5 } }],
-      0,
-    );
+    const res = await stream.append([{ eventType: 'Incremented', data: { amount: 5 } }], 0);
     expect(res.version).toBe(1);
     expect(res.events[0].streamVersion).toBe(1);
     expect(await stream.currentVersion()).toBe(1);
@@ -172,10 +164,7 @@ describe('Snapshotter — cadence, rehydration & performance', () => {
     const stream = store.stream(STREAM);
     let version = 0;
     for (let i = 0; i < 100; i++) {
-      const res = await stream.append(
-        [{ eventType: 'Incremented', data: { amount: 1 } }],
-        version,
-      );
+      const res = await stream.append([{ eventType: 'Incremented', data: { amount: 1 } }], version);
       version = res.version;
     }
     // The 100th append should have produced a snapshot at version 100.
@@ -187,10 +176,7 @@ describe('Snapshotter — cadence, rehydration & performance', () => {
     const stream = store.stream(STREAM);
     let version = 0;
     for (let i = 0; i < 150; i++) {
-      const res = await stream.append(
-        [{ eventType: 'Incremented', data: { amount: 2 } }],
-        version,
-      );
+      const res = await stream.append([{ eventType: 'Incremented', data: { amount: 2 } }], version);
       version = res.version;
     }
 
@@ -334,8 +320,12 @@ describe('ColdStorageArchiver', () => {
     expect(summary.archivedCount).toBe(2);
     // Two distinct months → two objects under the correct prefixes.
     expect(summary.objects).toHaveLength(2);
-    expect([...objectStore.objects.keys()].some((k) => k.startsWith('events/year=2023/month=03/'))).toBe(true);
-    expect([...objectStore.objects.keys()].some((k) => k.startsWith('events/year=2023/month=04/'))).toBe(true);
+    expect(
+      [...objectStore.objects.keys()].some((k) => k.startsWith('events/year=2023/month=03/')),
+    ).toBe(true);
+    expect(
+      [...objectStore.objects.keys()].some((k) => k.startsWith('events/year=2023/month=04/')),
+    ).toBe(true);
     // Each archived group was marked with its cold-storage key (pointer).
     expect(marked).toHaveLength(2);
     expect(marked.every((m) => m.key.startsWith('events/year=2023/'))).toBe(true);

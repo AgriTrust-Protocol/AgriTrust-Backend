@@ -88,19 +88,13 @@ export class FxOracle {
    * TWAP = Σ(price_i * duration_i) / total_duration
    * where duration_i is the time between consecutive samples.
    */
-  async computeTwap(
-    pair: CurrencyPair,
-    from: Date,
-    to: Date,
-  ): Promise<TwapResult | null> {
+  async computeTwap(pair: CurrencyPair, from: Date, to: Date): Promise<TwapResult | null> {
     const samples = await this.pool.getSamples(pair, from, to);
 
     if (samples.length === 0) return null;
 
     // Sort ascending by timestamp
-    const sorted = [...samples].sort(
-      (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
-    );
+    const sorted = [...samples].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
     if (sorted.length === 1) {
       // Only one sample: use it as-is (no time weighting possible)

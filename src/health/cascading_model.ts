@@ -63,18 +63,26 @@ export class CascadingModel {
     const riskyPaths: CascadingFailurePath[] = [];
     const visited = new Set<string>();
 
-    const dfs = (currentService: ServiceName, path: ServiceName[], probabilitySoFar: number): void => {
+    const dfs = (
+      currentService: ServiceName,
+      path: ServiceName[],
+      probabilitySoFar: number,
+    ): void => {
       const pathKey = path.join('->');
       if (visited.has(pathKey)) {
         return;
       }
       visited.add(pathKey);
 
-      const state = currentService === service
-        ? currentState
-        : this.serviceStates.get(currentService) ?? 'healthy';
+      const state =
+        currentService === service
+          ? currentState
+          : (this.serviceStates.get(currentService) ?? 'healthy');
       const unhealthyProbability = this.calculateUnhealthyProbability(currentService, state);
-      const pathProbability = Math.max(unhealthyProbability, probabilitySoFar * unhealthyProbability);
+      const pathProbability = Math.max(
+        unhealthyProbability,
+        probabilitySoFar * unhealthyProbability,
+      );
 
       if (path.length > 1 && pathProbability > threshold) {
         riskyPaths.push({ path: [...path], probability: pathProbability });
@@ -82,7 +90,11 @@ export class CascadingModel {
 
       for (const dependency of this.dependencyGraph.getDependencies(currentService)) {
         if (!path.includes(dependency)) {
-          dfs(dependency, [...path, dependency], Math.min(1, probabilitySoFar * unhealthyProbability));
+          dfs(
+            dependency,
+            [...path, dependency],
+            Math.min(1, probabilitySoFar * unhealthyProbability),
+          );
         }
       }
     };
@@ -100,10 +112,12 @@ export class CascadingModel {
     if (paths.length === 0) {
       return null;
     }
-    return paths.reduce((max, current) => current.probability > max.probability ? current : max);
+    return paths.reduce((max, current) => (current.probability > max.probability ? current : max));
   }
 
-  private calculateTransitionProbabilities(service: ServiceName): Record<HealthState, Record<HealthState, number>> {
+  private calculateTransitionProbabilities(
+    service: ServiceName,
+  ): Record<HealthState, Record<HealthState, number>> {
     const dependencies = this.dependencyGraph.getDependencies(service);
     const dependencyStateImpact = Array.from(dependencies).reduce((impact, dependency) => {
       const state = this.serviceStates.get(dependency) ?? 'healthy';
@@ -123,13 +137,27 @@ export class CascadingModel {
       unhealthy: { ...this.baseTransitionProbabilities.unhealthy },
     };
 
-    probabilities.healthy.degraded = Math.min(0.95, probabilities.healthy.degraded + dependencyImpact);
-    probabilities.healthy.unhealthy = Math.min(0.95, probabilities.healthy.unhealthy + dependencyImpact * 0.5);
-    probabilities.healthy.healthy = 1 - probabilities.healthy.degraded - probabilities.healthy.unhealthy;
+    probabilities.healthy.degraded = Math.min(
+      0.95,
+      probabilities.healthy.degraded + dependencyImpact,
+    );
+    probabilities.healthy.unhealthy = Math.min(
+      0.95,
+      probabilities.healthy.unhealthy + dependencyImpact * 0.5,
+    );
+    probabilities.healthy.healthy =
+      1 - probabilities.healthy.degraded - probabilities.healthy.unhealthy;
 
-    probabilities.degraded.unhealthy = Math.min(0.95, probabilities.degraded.unhealthy + dependencyImpact);
-    probabilities.degraded.degraded = Math.max(0.05, probabilities.degraded.degraded - dependencyImpact * 0.5);
-    probabilities.degraded.healthy = 1 - probabilities.degraded.degraded - probabilities.degraded.unhealthy;
+    probabilities.degraded.unhealthy = Math.min(
+      0.95,
+      probabilities.degraded.unhealthy + dependencyImpact,
+    );
+    probabilities.degraded.degraded = Math.max(
+      0.05,
+      probabilities.degraded.degraded - dependencyImpact * 0.5,
+    );
+    probabilities.degraded.healthy =
+      1 - probabilities.degraded.degraded - probabilities.degraded.unhealthy;
 
     return probabilities;
   }

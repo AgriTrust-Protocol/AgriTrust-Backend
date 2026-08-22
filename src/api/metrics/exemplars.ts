@@ -57,9 +57,9 @@ export function parseTraceparent(header: string): TraceContext | null {
  * Extract trace context from an IncomingMessage-like object.
  * Checks `traceparent` and `tracestate` headers.
  */
-export function traceContextFrom(
-  req: { headers?: Record<string, string | string[] | undefined> },
-): TraceContext | null {
+export function traceContextFrom(req: {
+  headers?: Record<string, string | string[] | undefined>;
+}): TraceContext | null {
   if (!req.headers) return null;
 
   const raw = req.headers['traceparent'];

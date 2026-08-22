@@ -49,7 +49,10 @@ function createTestDb() {
   const db = newDb({ autoCreateForeignKeyIndices: true });
 
   let uuidSeq = 0;
-  const randomHex = () => Math.floor(Math.random() * 0x10000).toString(16).padStart(4, '0');
+  const randomHex = () =>
+    Math.floor(Math.random() * 0x10000)
+      .toString(16)
+      .padStart(4, '0');
   db.public.registerFunction({
     name: 'gen_random_uuid',
     returns: 'uuid' as any,
@@ -57,7 +60,7 @@ function createTestDb() {
       uuidSeq += 1;
       const hi = BigInt(Date.now()) * BigInt(1000) + BigInt(uuidSeq);
       const hiHex = hi.toString(16).padStart(16, '0').slice(-16);
-      return `${hiHex.slice(0,8)}-${hiHex.slice(8,12)}-7${hiHex.slice(13,16)}-${randomHex()}-${randomHex()}${randomHex()}`;
+      return `${hiHex.slice(0, 8)}-${hiHex.slice(8, 12)}-7${hiHex.slice(13, 16)}-${randomHex()}-${randomHex()}${randomHex()}`;
     },
   });
 
@@ -130,7 +133,9 @@ describe('BatchStatusWorkflow — concurrent transitions', () => {
     if (workflow) {
       workflow.engine.shutdown();
     }
-    try { await pool?.end(); } catch {}
+    try {
+      await pool?.end();
+    } catch {}
   });
 
   it('concurrent INSPECTED→CERTIFIED: exactly one transition succeeds, no duplicates', async () => {
@@ -165,12 +170,7 @@ describe('BatchStatusWorkflow — concurrent transitions', () => {
     expect(await getBatchVersion(pool, batchId)).toBe(2);
 
     // Exactly ONE audit event for INSPECTED→CERTIFIED.
-    const auditCount = await countAuditForTransition(
-      pool,
-      batchId,
-      'INSPECTED',
-      'CERTIFIED',
-    );
+    const auditCount = await countAuditForTransition(pool, batchId, 'INSPECTED', 'CERTIFIED');
     expect(auditCount).toBe(1);
 
     // Exactly ONE processed_transitions entry.
@@ -189,9 +189,7 @@ describe('BatchStatusWorkflow — concurrent transitions', () => {
 
     // Concurrently transition each batch to CERTIFIED.
     const results = await Promise.all(
-      batchIds.map((id) =>
-        workflow.transitionBatch({ batchId: id, targetStatus: 'CERTIFIED' }),
-      ),
+      batchIds.map((id) => workflow.transitionBatch({ batchId: id, targetStatus: 'CERTIFIED' })),
     );
 
     // All must succeed (200).

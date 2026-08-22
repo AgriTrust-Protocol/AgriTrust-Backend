@@ -14,7 +14,11 @@ export const webhookQueueDepth = new Gauge({
   registers: [metricsRegistry],
 });
 
-export function recordWebhookAttempt(tenantId: string, eventType: string, result: 'success' | 'retry' | 'dead_letter'): void {
+export function recordWebhookAttempt(
+  tenantId: string,
+  eventType: string,
+  result: 'success' | 'retry' | 'dead_letter',
+): void {
   webhookDeliveryAttemptsTotal.inc({ tenant_id: tenantId, event_type: eventType, result });
 }
 

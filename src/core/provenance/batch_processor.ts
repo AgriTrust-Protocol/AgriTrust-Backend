@@ -33,12 +33,12 @@ const VERIFICATION_TIMEOUT_MS = 500;
 
 /** Ranges for each certification dimension. */
 const DIMENSION_RANGES: Record<CertificationDimension, { min: number; max: number }> = {
-  organic_compost_used: { min: 0, max: 1 },     // boolean: 0=no, 1=yes
-  pesticide_free_days: { min: 0, max: 365 },     // days in a year
-  nitrate_level: { min: 0, max: 500 },           // ppm
-  soil_ph: { min: 0, max: 14 },                  // pH scale
-  water_usage: { min: 0, max: 100000 },          // liters
-  carbon_footprint: { min: 0, max: 10000 },      // kg CO2 equivalent
+  organic_compost_used: { min: 0, max: 1 }, // boolean: 0=no, 1=yes
+  pesticide_free_days: { min: 0, max: 365 }, // days in a year
+  nitrate_level: { min: 0, max: 500 }, // ppm
+  soil_ph: { min: 0, max: 14 }, // pH scale
+  water_usage: { min: 0, max: 100000 }, // liters
+  carbon_footprint: { min: 0, max: 10000 }, // kg CO2 equivalent
 };
 
 // ─── Verification Result ─────────────────────────────────────────────────────
@@ -89,10 +89,13 @@ export function processBatch(
     return {
       valid: false,
       dimensions: Object.fromEntries(
-        REQUIRED_DIMENSIONS.map((d) => [d, {
-          valid: false,
-          error: 'Farmer public key mismatch',
-        }]),
+        REQUIRED_DIMENSIONS.map((d) => [
+          d,
+          {
+            valid: false,
+            error: 'Farmer public key mismatch',
+          },
+        ]),
       ),
       verificationTimeMs: Date.now() - startTime,
     };
@@ -136,9 +139,7 @@ export function processBatch(
     // Step 4: Check per-dimension timeout
     const dimTime = Date.now() - startDim;
     if (dimTime > 100) {
-      console.warn(
-        `ZK verification for ${dimension} took ${dimTime}ms (threshold: 100ms)`,
-      );
+      console.warn(`ZK verification for ${dimension} took ${dimTime}ms (threshold: 100ms)`);
     }
   }
 
@@ -186,10 +187,7 @@ export function generateBatchProof(
   values: Partial<Record<CertificationDimension, number>>,
 ): BatchProof {
   const proofs: RangeProof[] = [];
-  for (const [dimension, value] of Object.entries(values) as [
-    CertificationDimension,
-    number,
-  ][]) {
+  for (const [dimension, value] of Object.entries(values) as [CertificationDimension, number][]) {
     const range = DIMENSION_RANGES[dimension];
     if (!range) continue;
 

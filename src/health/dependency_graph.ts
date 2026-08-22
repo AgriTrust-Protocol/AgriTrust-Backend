@@ -74,7 +74,9 @@ export class InMemoryDependencyGraph implements DependencyGraph {
       newServices.delete(service);
     }
     if (this.allServices.size + newServices.size > MAX_MONITORED_SERVICES) {
-      throw new Error(`Cannot add dependency: maximum monitored services is ${MAX_MONITORED_SERVICES}`);
+      throw new Error(
+        `Cannot add dependency: maximum monitored services is ${MAX_MONITORED_SERVICES}`,
+      );
     }
 
     this.allServices.add(from);
@@ -95,11 +97,12 @@ export class InMemoryDependencyGraph implements DependencyGraph {
   }
 
   private normalizeConfig(config: Record<string, unknown>): Map<string, string[]> {
-    const source = config.dependencies &&
+    const source =
+      config.dependencies &&
       typeof config.dependencies === 'object' &&
       !Array.isArray(config.dependencies)
-      ? config.dependencies as Record<string, unknown>
-      : config;
+        ? (config.dependencies as Record<string, unknown>)
+        : config;
     const normalized = new Map<string, string[]>();
 
     for (const [service, rawDeps] of Object.entries(source)) {
@@ -107,7 +110,7 @@ export class InMemoryDependencyGraph implements DependencyGraph {
         ? rawDeps
             .flat()
             .filter((dep): dep is string => typeof dep === 'string' && dep.trim().length > 0)
-            .map(dep => dep.trim())
+            .map((dep) => dep.trim())
         : [];
 
       normalized.set(service, deps);
@@ -136,7 +139,10 @@ export function parseDependencyYaml(content: string): Record<string, string[]> {
       currentService = serviceMatch[1];
       const inlineList = serviceMatch[2];
       config[currentService] = inlineList
-        ? inlineList.split(',').map(dep => dep.trim()).filter(Boolean)
+        ? inlineList
+            .split(',')
+            .map((dep) => dep.trim())
+            .filter(Boolean)
         : [];
       continue;
     }

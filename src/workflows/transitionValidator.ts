@@ -17,10 +17,7 @@ export class TransitionValidator {
    * Validates that a transition is legal at the application level.
    * Returns the current status, or throws if the transition is invalid.
    */
-  validateStatusTransition(
-    currentStatus: BatchStatus,
-    targetStatus: BatchStatus,
-  ): void {
+  validateStatusTransition(currentStatus: BatchStatus, targetStatus: BatchStatus): void {
     // Idempotency: already at target = success (handled by caller).
     if (currentStatus === targetStatus) {
       return;
@@ -41,10 +38,10 @@ export class TransitionValidator {
     currentStatus: BatchStatus,
     targetStatus: BatchStatus,
   ): Promise<void> {
-    const res = await client.query(
-      'SELECT validate_transition($1, $2) AS valid',
-      [currentStatus, targetStatus],
-    );
+    const res = await client.query('SELECT validate_transition($1, $2) AS valid', [
+      currentStatus,
+      targetStatus,
+    ]);
 
     if (!res.rows[0]?.valid) {
       throw new InvalidTransitionError(currentStatus, targetStatus);
@@ -60,7 +57,7 @@ export class InvalidTransitionError extends Error {
   constructor(current: BatchStatus, target: BatchStatus) {
     super(
       `Invalid transition: ${current} → ${target}. ` +
-      `Valid forward step is: ${[...getValidTargets(current)].join(' → ')}`,
+        `Valid forward step is: ${[...getValidTargets(current)].join(' → ')}`,
     );
     this.name = 'InvalidTransitionError';
     this.currentStatus = current;

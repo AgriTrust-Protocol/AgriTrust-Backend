@@ -9,7 +9,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { FeatureEngine, FlagDefinition } from '../engine';
 import { ConfigStore, RedisHashClient } from '../config-store';
-import { Propagator, PROPAGATION_CHANNEL, RedisPubSubClient, RedisPublishClient } from '../propagator';
+import {
+  Propagator,
+  PROPAGATION_CHANNEL,
+  RedisPubSubClient,
+  RedisPublishClient,
+} from '../propagator';
 
 // ─── Shared Redis mock supporting both hash operations and pub/sub ────────
 
@@ -23,9 +28,15 @@ class SharedRedis implements RedisHashClient, RedisPublishClient {
     this.hashes.get(k)!.set(f, v);
     return 1;
   }
-  async hget(k: string, f: string) { return this.hashes.get(k)?.get(f) ?? null; }
-  async hdel(k: string, f: string) { return this.hashes.get(k)?.delete(f) ? 1 : 0; }
-  async hvals(k: string) { return [...(this.hashes.get(k)?.values() ?? [])]; }
+  async hget(k: string, f: string) {
+    return this.hashes.get(k)?.get(f) ?? null;
+  }
+  async hdel(k: string, f: string) {
+    return this.hashes.get(k)?.delete(f) ? 1 : 0;
+  }
+  async hvals(k: string) {
+    return [...(this.hashes.get(k)?.values() ?? [])];
+  }
 
   // Pub/sub ops
   async publish(ch: string, msg: string) {
@@ -52,34 +63,38 @@ class SharedRedis implements RedisHashClient, RedisPublishClient {
 }
 
 const TEST_FLAG: FlagDefinition = {
-  key: 'integration-flag', enabled: true, rolloutPercentage: 25,
-  targetingRules: [], payload: { test: 42 }, variants: [],
+  key: 'integration-flag',
+  enabled: true,
+  rolloutPercentage: 25,
+  targetingRules: [],
+  payload: { test: 42 },
+  variants: [],
 };
 
 describe('Integration: Eventual Consistency', () => {
   let redis: SharedRedis;
 
-  let engineA:     FeatureEngine;
-  let storeA:      ConfigStore;
+  let engineA: FeatureEngine;
+  let storeA: ConfigStore;
   let propagatorA: Propagator;
 
-  let engineB:     FeatureEngine;
-  let storeB:      ConfigStore;
+  let engineB: FeatureEngine;
+  let storeB: ConfigStore;
   let propagatorB: Propagator;
 
   beforeEach(async () => {
     redis = new SharedRedis();
 
     // Node A
-    engineA     = new FeatureEngine();
-    storeA      = new ConfigStore(engineA, redis);
+    engineA = new FeatureEngine();
+    storeA = new ConfigStore(engineA, redis);
     storeA.stop();
     propagatorA = new Propagator(engineA, storeA);
     await propagatorA.start(redis.createSubscriber());
 
     // Node B
-    engineB     = new FeatureEngine();
-    storeB      = new ConfigStore(engineB, redis);
+    engineB = new FeatureEngine();
+    storeB = new ConfigStore(engineB, redis);
     storeB.stop();
     propagatorB = new Propagator(engineB, storeB);
     await propagatorB.start(redis.createSubscriber());
@@ -134,5 +149,5 @@ describe('Integration: Eventual Consistency', () => {
 });
 
 function waitMs(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

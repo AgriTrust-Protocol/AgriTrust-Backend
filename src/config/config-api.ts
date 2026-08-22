@@ -24,7 +24,7 @@ export function createConfigRouter(): Router {
 
   router.get('/history', (_req: Request, res: Response) => {
     try {
-      const history = configLoader.getHistory().map(entry => ({
+      const history = configLoader.getHistory().map((entry) => ({
         timestamp: new Date(entry.timestamp).toISOString(),
         source: entry.source,
       }));
