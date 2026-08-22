@@ -1,5 +1,7 @@
 // ─── Load .env file before anything else ──────────────────────────────────────
-try { require('dotenv').config(); } catch {}
+try {
+  require('dotenv').config();
+} catch {}
 
 // ─── Configuration validation at startup ─────────────────────────────────────
 try {
@@ -47,7 +49,8 @@ let openApiMiddleware;
 try {
   openApiMiddleware = require('./src/middleware/openapi-validator').openApiValidationMiddleware;
 } catch {
-  openApiMiddleware = require('./dist/src/middleware/openapi-validator').openApiValidationMiddleware;
+  openApiMiddleware =
+    require('./dist/src/middleware/openapi-validator').openApiValidationMiddleware;
 }
 app.use(openApiMiddleware);
 
@@ -72,12 +75,11 @@ app.use(metricsMiddleware);
 
 // ─── Mount Canary Middleware & Admin Routing Elements ─────────────────────────
 
-
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     project: 'Grant Stream',
     status: 'Tracking Grants',
-    contract: 'CD6OGC46OFCV52IJQKEDVKLX5ASA3ZMSTHAAZQIPDSJV6VZ3KUJDEP4D'
+    contract: 'CD6OGC46OFCV52IJQKEDVKLX5ASA3ZMSTHAAZQIPDSJV6VZ3KUJDEP4D',
   });
 });
 
@@ -110,13 +112,16 @@ app.get('/health/ledger-consistency', async (req, res) => {
   }
 });
 
-app.use('/health', (() => {
-  try {
-    return require('./src/health/routes').createHealthRouter();
-  } catch {
-    return require('./dist/src/health/routes').createHealthRouter();
-  }
-})());
+app.use(
+  '/health',
+  (() => {
+    try {
+      return require('./src/health/routes').createHealthRouter();
+    } catch {
+      return require('./dist/src/health/routes').createHealthRouter();
+    }
+  })(),
+);
 
 /**
  * GET /metrics
@@ -179,7 +184,7 @@ app.get('/api/versions', (req, res) => {
     versionRegistry = require('./dist/src/config/api-versions').versionRegistry;
   }
   res.json({
-    versions: versionRegistry.getAllVersions()
+    versions: versionRegistry.getAllVersions(),
   });
 });
 
@@ -216,7 +221,6 @@ app.get('/debug/metrics/check', async (_req, res) => {
 
   await debugCheck.debugMetricsCheckHandler(_req, res);
 });
-
 
 // ─── Geospatial Parcel Query Service (Issue #93) ────────────────────────────
 try {
@@ -303,7 +307,6 @@ try {
   }
 }
 
-
 // ─── Reliable Webhook Delivery System (Issue #54) ──────────────────────────
 try {
   const { MemoryRedis } = require('./dist/src/webhooks/memory-redis');
@@ -319,7 +322,15 @@ try {
   const deadLetterQueue = new DeadLetterQueue(redis);
   const subscriptionManager = new SubscriptionManager(redis);
   const webhookDispatcher = new WebhookDispatcher(deliveryQueue, idempotencyStore, deadLetterQueue);
-  app.use('/admin', createAdminWebhooksRouter(deliveryQueue, deadLetterQueue, subscriptionManager, webhookDispatcher));
+  app.use(
+    '/admin',
+    createAdminWebhooksRouter(
+      deliveryQueue,
+      deadLetterQueue,
+      subscriptionManager,
+      webhookDispatcher,
+    ),
+  );
   if (process.env.NODE_ENV !== 'test') webhookDispatcher.start();
 } catch (err) {
   console.warn('Webhook delivery modules not found or failed to load. Skipping init.');
@@ -372,19 +383,25 @@ try {
   // Start the scheduler tick loop in production.
   if (process.env.NODE_ENV !== 'test') {
     orchestrator.start();
-    persistence.connect()
+    persistence
+      .connect()
       .then(() => {
         scheduler.start();
         // Schedule the key retirement job to run every hour.
-        setInterval(() => {
-          persistence.enqueue({
-            id: `key-retirement-${Date.now()}`,
-            type: 'key_retirement',
-            payload: {},
-            priority: 1, // Low
-            submittedAt: Date.now(),
-          }).catch(err => console.error('Failed to enqueue key_retirement job:', err));
-        }, 60 * 60 * 1000);
+        setInterval(
+          () => {
+            persistence
+              .enqueue({
+                id: `key-retirement-${Date.now()}`,
+                type: 'key_retirement',
+                payload: {},
+                priority: 1, // Low
+                submittedAt: Date.now(),
+              })
+              .catch((err) => console.error('Failed to enqueue key_retirement job:', err));
+          },
+          60 * 60 * 1000,
+        );
       })
       .catch((err) => console.warn('Redis unavailable — job queue disabled:', err.message));
     console.log('Job queue scheduler started.');

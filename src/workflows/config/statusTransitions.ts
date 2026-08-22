@@ -18,10 +18,7 @@ export const VALID_TRANSITIONS: Readonly<Record<BatchStatus, ReadonlySet<BatchSt
  * Checks whether a transition from `current` to `target` is a legal forward
  * step in the batch lifecycle DAG.
  */
-export function isValidTransition(
-  current: BatchStatus,
-  target: BatchStatus,
-): boolean {
+export function isValidTransition(current: BatchStatus, target: BatchStatus): boolean {
   const validTargets = VALID_TRANSITIONS[current];
   if (!validTargets) return false;
   return validTargets.has(target);

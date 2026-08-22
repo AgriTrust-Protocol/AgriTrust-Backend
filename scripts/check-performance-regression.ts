@@ -4,12 +4,15 @@ import { evaluatePerformanceSuite, PerformanceSample } from '../src/performance/
 const reportPath = process.argv[2] || process.env.PERFORMANCE_REPORT_PATH;
 
 if (!reportPath) {
-  console.error('Usage: npx ts-node scripts/check-performance-regression.ts <performance-report.json>');
+  console.error(
+    'Usage: npx ts-node scripts/check-performance-regression.ts <performance-report.json>',
+  );
   process.exit(2);
 }
 
-const report = JSON.parse(readFileSync(reportPath, 'utf-8')) as { samples?: PerformanceSample[] } | PerformanceSample[];
-const samples = Array.isArray(report) ? report : report.samples ?? [];
+const report = JSON.parse(readFileSync(reportPath, 'utf-8')) as
+  { samples?: PerformanceSample[] } | PerformanceSample[];
+const samples = Array.isArray(report) ? report : (report.samples ?? []);
 const result = evaluatePerformanceSuite(samples);
 
 if (!result.passed) {

@@ -88,10 +88,7 @@ export function commit(
  *
  * Recomputes C' = v·G + r·H and checks C' == commitment.
  */
-export function verifyCommitment(
-  commitment: PedersenCommitment,
-  opening: Opening,
-): boolean {
+export function verifyCommitment(commitment: PedersenCommitment, opening: Opening): boolean {
   try {
     const C = pointFromBytes(commitment.commitment);
     const rScalar = scalarFromBytesLE(opening.blinding);
@@ -109,10 +106,7 @@ export function verifyCommitment(
  * Homomorphically adds two Pedersen commitments.
  * C_sum = C_a + C_b = (v_a+v_b)·G + (r_a+r_b)·H
  */
-export function homomorphicAdd(
-  a: PedersenCommitment,
-  b: PedersenCommitment,
-): PedersenCommitment {
+export function homomorphicAdd(a: PedersenCommitment, b: PedersenCommitment): PedersenCommitment {
   const A = pointFromBytes(a.commitment);
   const B = pointFromBytes(b.commitment);
   return { commitment: A.add(B).toBytes() };

@@ -21,11 +21,7 @@ import {
   NETTING_INVARIANTS,
 } from '../../src/settlement/netting_engine';
 
-import {
-  FxOracle,
-  LiquidityPoolAdapter,
-  PriceSample,
-} from '../../src/settlement/fx_oracle';
+import { FxOracle, LiquidityPoolAdapter, PriceSample } from '../../src/settlement/fx_oracle';
 
 import {
   SwiftAdapter,
@@ -52,15 +48,16 @@ import {
 const NOW = new Date('2025-06-15T10:00:00Z');
 
 const BASE_RATES: FxRates = {
-  'USD/EUR': 0.92,   // 1 USD = 0.92 EUR  → EUR/USD = 1/0.92
-  'USD/NGN': 1580,   // 1 USD = 1580 NGN
-  'USD/KES': 128,    // 1 USD = 128  KES
+  'USD/EUR': 0.92, // 1 USD = 0.92 EUR  → EUR/USD = 1/0.92
+  'USD/NGN': 1580, // 1 USD = 1580 NGN
+  'USD/KES': 128, // 1 USD = 128  KES
   'EUR/NGN': 1717.4, // 1 EUR = 1717.4 NGN
-  'EUR/KES': 139.1,  // 1 EUR = 139.1 KES
+  'EUR/KES': 139.1, // 1 EUR = 139.1 KES
 };
 
 function makeSettlement(
-  overrides: Partial<PendingSettlement> & Pick<PendingSettlement, 'id' | 'debtorId' | 'creditorId' | 'amount' | 'currency'>,
+  overrides: Partial<PendingSettlement> &
+    Pick<PendingSettlement, 'id' | 'debtorId' | 'creditorId' | 'amount' | 'currency'>,
 ): PendingSettlement {
   return {
     tradeTimestamp: NOW,
@@ -114,7 +111,13 @@ describe('NettingEngine — bilateral netting', () => {
 
   it('converts NGN to USD for netAmountUsd', () => {
     const settlements = [
-      makeSettlement({ id: 's7', debtorId: 'A', creditorId: 'B', amount: 158_000, currency: 'NGN' }),
+      makeSettlement({
+        id: 's7',
+        debtorId: 'A',
+        creditorId: 'B',
+        amount: 158_000,
+        currency: 'NGN',
+      }),
     ];
     const positions = engine.bilateralNetting(settlements, BASE_RATES);
     expect(positions).toHaveLength(1);
@@ -131,9 +134,30 @@ describe('NettingEngine — multilateral netting', () => {
     // Net balances: A=-300+100=-200, B=+300-200=+100, C=+200-100=+100
     // → A pays B 100, A pays C 100  (or any equivalent decomposition)
     const bilateral = [
-      { debtorId: 'A', creditorId: 'B', netAmount: 300, currency: 'USD' as const, netAmountUsd: 300, settlementIds: ['x1'] },
-      { debtorId: 'B', creditorId: 'C', netAmount: 200, currency: 'USD' as const, netAmountUsd: 200, settlementIds: ['x2'] },
-      { debtorId: 'C', creditorId: 'A', netAmount: 100, currency: 'USD' as const, netAmountUsd: 100, settlementIds: ['x3'] },
+      {
+        debtorId: 'A',
+        creditorId: 'B',
+        netAmount: 300,
+        currency: 'USD' as const,
+        netAmountUsd: 300,
+        settlementIds: ['x1'],
+      },
+      {
+        debtorId: 'B',
+        creditorId: 'C',
+        netAmount: 200,
+        currency: 'USD' as const,
+        netAmountUsd: 200,
+        settlementIds: ['x2'],
+      },
+      {
+        debtorId: 'C',
+        creditorId: 'A',
+        netAmount: 100,
+        currency: 'USD' as const,
+        netAmountUsd: 100,
+        settlementIds: ['x3'],
+      },
     ];
 
     const positions = engine.multilateralNetting(bilateral, BASE_RATES);
@@ -144,8 +168,22 @@ describe('NettingEngine — multilateral netting', () => {
 
   it('preserves all settlement IDs in resulting positions', () => {
     const bilateral = [
-      { debtorId: 'A', creditorId: 'B', netAmount: 500, currency: 'USD' as const, netAmountUsd: 500, settlementIds: ['y1', 'y2'] },
-      { debtorId: 'C', creditorId: 'B', netAmount: 300, currency: 'USD' as const, netAmountUsd: 300, settlementIds: ['y3'] },
+      {
+        debtorId: 'A',
+        creditorId: 'B',
+        netAmount: 500,
+        currency: 'USD' as const,
+        netAmountUsd: 500,
+        settlementIds: ['y1', 'y2'],
+      },
+      {
+        debtorId: 'C',
+        creditorId: 'B',
+        netAmount: 300,
+        currency: 'USD' as const,
+        netAmountUsd: 300,
+        settlementIds: ['y3'],
+      },
     ];
     const positions = engine.multilateralNetting(bilateral, BASE_RATES);
     const allIds = positions.flatMap((p) => p.settlementIds);
@@ -159,24 +197,51 @@ describe('NettingEngine — CCP netting', () => {
 
   it('routes all net positions through the CCP node', () => {
     const positions = [
-      { debtorId: 'A', creditorId: 'B', netAmount: 200, currency: 'USD' as const, netAmountUsd: 200, settlementIds: ['z1'] },
-      { debtorId: 'C', creditorId: 'B', netAmount: 150, currency: 'USD' as const, netAmountUsd: 150, settlementIds: ['z2'] },
+      {
+        debtorId: 'A',
+        creditorId: 'B',
+        netAmount: 200,
+        currency: 'USD' as const,
+        netAmountUsd: 200,
+        settlementIds: ['z1'],
+      },
+      {
+        debtorId: 'C',
+        creditorId: 'B',
+        netAmount: 150,
+        currency: 'USD' as const,
+        netAmountUsd: 150,
+        settlementIds: ['z2'],
+      },
     ];
 
     const ccp = engine.ccpNetting(positions, BASE_RATES);
 
     // Every position must involve CCP:AGRITRUST on one side
     for (const p of ccp) {
-      const involvesCcp =
-        p.debtorId === 'CCP:AGRITRUST' || p.creditorId === 'CCP:AGRITRUST';
+      const involvesCcp = p.debtorId === 'CCP:AGRITRUST' || p.creditorId === 'CCP:AGRITRUST';
       expect(involvesCcp).toBe(true);
     }
   });
 
   it('conserves total net amounts', () => {
     const positions = [
-      { debtorId: 'A', creditorId: 'B', netAmount: 500, currency: 'USD' as const, netAmountUsd: 500, settlementIds: ['w1'] },
-      { debtorId: 'D', creditorId: 'E', netAmount: 300, currency: 'USD' as const, netAmountUsd: 300, settlementIds: ['w2'] },
+      {
+        debtorId: 'A',
+        creditorId: 'B',
+        netAmount: 500,
+        currency: 'USD' as const,
+        netAmountUsd: 500,
+        settlementIds: ['w1'],
+      },
+      {
+        debtorId: 'D',
+        creditorId: 'E',
+        netAmount: 300,
+        currency: 'USD' as const,
+        netAmountUsd: 300,
+        settlementIds: ['w2'],
+      },
     ];
 
     const ccp = engine.ccpNetting(positions, BASE_RATES);
@@ -245,9 +310,27 @@ describe('NettingEngine — full pipeline with multiple currencies', () => {
   it('processes USD and EUR settlements in the same period', () => {
     const engine = new NettingEngine();
     const settlements = [
-      makeSettlement({ id: 'm1', debtorId: 'FarmA', creditorId: 'BuyerB', amount: 5000, currency: 'USD' }),
-      makeSettlement({ id: 'm2', debtorId: 'BuyerB', creditorId: 'FarmA', amount: 2000, currency: 'USD' }),
-      makeSettlement({ id: 'm3', debtorId: 'FarmC', creditorId: 'BuyerD', amount: 3000, currency: 'EUR' }),
+      makeSettlement({
+        id: 'm1',
+        debtorId: 'FarmA',
+        creditorId: 'BuyerB',
+        amount: 5000,
+        currency: 'USD',
+      }),
+      makeSettlement({
+        id: 'm2',
+        debtorId: 'BuyerB',
+        creditorId: 'FarmA',
+        amount: 2000,
+        currency: 'USD',
+      }),
+      makeSettlement({
+        id: 'm3',
+        debtorId: 'FarmC',
+        creditorId: 'BuyerD',
+        amount: 3000,
+        currency: 'EUR',
+      }),
     ];
 
     const result = engine.computeNetting(settlements, BASE_RATES);
@@ -287,7 +370,7 @@ describe('FxOracle — TWAP computation', () => {
     // Two samples dividing the window in half, one at 0.90 and one at 0.94
     const oracle = new FxOracle(
       makeAdapter([
-        { timestamp: new Date('2025-06-15T00:00:00Z'), pair: 'USD/EUR', price: 0.90 },
+        { timestamp: new Date('2025-06-15T00:00:00Z'), pair: 'USD/EUR', price: 0.9 },
         { timestamp: new Date('2025-06-15T12:00:00Z'), pair: 'USD/EUR', price: 0.94 },
       ]),
     );
@@ -351,7 +434,11 @@ describe('SwiftAdapter — pacs.008 message construction', () => {
   function makeGateway(accepted = true): SwiftGatewayClient {
     return {
       submit: async (_xml: string) => {
-        return { uetr: 'uetr-test-1234', accepted, rejectionReason: accepted ? undefined : 'INVALID_BIC' };
+        return {
+          uetr: 'uetr-test-1234',
+          accepted,
+          rejectionReason: accepted ? undefined : 'INVALID_BIC',
+        };
       },
     };
   }
@@ -432,7 +519,8 @@ describe('SwiftAdapter — pacs.008 message construction', () => {
     const gateway = makeGateway();
     const submitSpy = vi.spyOn(gateway, 'submit');
 
-    const adapter = new SwiftAdapter(makeDirectory({}), gateway);    const group = {
+    const adapter = new SwiftAdapter(makeDirectory({}), gateway);
+    const group = {
       groupId: 'g1',
       algorithm: 'ccp' as const,
       period: { start: new Date(), end: new Date(), corridorId: 'default' },
@@ -457,9 +545,7 @@ describe('SwiftAdapter — pacs.008 message construction', () => {
 // ─── BlockchainAdapter ────────────────────────────────────────────────────────
 
 describe('BlockchainAdapter — USDC transfer batching', () => {
-  function makeWallets(
-    map: Record<string, string>,
-  ): WalletDirectory {
+  function makeWallets(map: Record<string, string>): WalletDirectory {
     return {
       lookup: async (id) => (map[id] ? { address: map[id] } : null),
     };
@@ -486,7 +572,14 @@ describe('BlockchainAdapter — USDC transfer batching', () => {
     const adapter = new BlockchainAdapter(wallets, rpc);
 
     const positions = [
-      { debtorId: 'A', creditorId: 'B', netAmount: 1000, currency: 'USD' as const, netAmountUsd: 1000, settlementIds: ['t1'] },
+      {
+        debtorId: 'A',
+        creditorId: 'B',
+        netAmount: 1000,
+        currency: 'USD' as const,
+        netAmountUsd: 1000,
+        settlementIds: ['t1'],
+      },
     ];
 
     const { eligible, failed } = await adapter.buildTransfers(positions);
@@ -505,7 +598,14 @@ describe('BlockchainAdapter — USDC transfer batching', () => {
     const adapter = new BlockchainAdapter(wallets, rpc);
 
     const positions = [
-      { debtorId: 'A', creditorId: 'B', netAmount: 200, currency: 'USD' as const, netAmountUsd: 200, settlementIds: ['t2'] },
+      {
+        debtorId: 'A',
+        creditorId: 'B',
+        netAmount: 200,
+        currency: 'USD' as const,
+        netAmountUsd: 200,
+        settlementIds: ['t2'],
+      },
     ];
 
     const { eligible, failed } = await adapter.buildTransfers(positions);
@@ -524,7 +624,14 @@ describe('BlockchainAdapter — USDC transfer batching', () => {
       algorithm: 'ccp' as const,
       period: { start: new Date(), end: new Date(), corridorId: 'default' },
       positions: [
-        { debtorId: 'X', creditorId: 'Y', netAmount: 500, currency: 'USD' as const, netAmountUsd: 500, settlementIds: ['t3'] },
+        {
+          debtorId: 'X',
+          creditorId: 'Y',
+          netAmount: 500,
+          currency: 'USD' as const,
+          netAmountUsd: 500,
+          settlementIds: ['t3'],
+        },
       ],
       allSettlementIds: ['t3'],
     };
@@ -544,7 +651,14 @@ describe('BlockchainAdapter — USDC transfer batching', () => {
       algorithm: 'ccp' as const,
       period: { start: new Date(), end: new Date(), corridorId: 'default' },
       positions: [
-        { debtorId: 'X', creditorId: 'Y', netAmount: 500, currency: 'USD' as const, netAmountUsd: 500, settlementIds: ['t4'] },
+        {
+          debtorId: 'X',
+          creditorId: 'Y',
+          netAmount: 500,
+          currency: 'USD' as const,
+          netAmountUsd: 500,
+          settlementIds: ['t4'],
+        },
       ],
       allSettlementIds: ['t4'],
     };
@@ -559,13 +673,19 @@ describe('BlockchainAdapter — USDC transfer batching', () => {
 describe('RollbackManager — atomic rollback', () => {
   function makeSwiftReversal(succeed = true): SwiftReversal {
     return {
-      reverse: async () => ({ success: succeed, error: succeed ? undefined : 'SWIFT recall rejected' }),
+      reverse: async () => ({
+        success: succeed,
+        error: succeed ? undefined : 'SWIFT recall rejected',
+      }),
     };
   }
 
   function makeBlockchainReversal(succeed = true): BlockchainReversal {
     return {
-      reverse: async () => ({ success: succeed, error: succeed ? undefined : 'on-chain reversal failed' }),
+      reverse: async () => ({
+        success: succeed,
+        error: succeed ? undefined : 'on-chain reversal failed',
+      }),
     };
   }
 
@@ -574,7 +694,14 @@ describe('RollbackManager — atomic rollback', () => {
     algorithm: 'ccp' as const,
     period: { start: new Date(), end: new Date(), corridorId: 'default' },
     positions: [
-      { debtorId: 'A', creditorId: 'B', netAmount: 1000, currency: 'USD' as const, netAmountUsd: 1000, settlementIds: ['r1', 'r2'] },
+      {
+        debtorId: 'A',
+        creditorId: 'B',
+        netAmount: 1000,
+        currency: 'USD' as const,
+        netAmountUsd: 1000,
+        settlementIds: ['r1', 'r2'],
+      },
     ],
     allSettlementIds: ['r1', 'r2'],
   };
@@ -585,18 +712,22 @@ describe('RollbackManager — atomic rollback', () => {
     const result = await rm.handleSettlementResult(
       sampleGroup,
       [{ instructionId: 'INST-1', uetr: 'uetr-1', accepted: true }],
-      { nettingGroupId: 'g-rollback-1', txHash: '0xabc', accepted: true, receipts: [], failedTransfers: [] },
+      {
+        nettingGroupId: 'g-rollback-1',
+        txHash: '0xabc',
+        accepted: true,
+        receipts: [],
+        failedTransfers: [],
+      },
     );
 
     expect(result).toBeNull();
   });
 
   it('rolls back SWIFT leg when blockchain leg fails', async () => {
-    const rm = new RollbackManager(
-      makeSwiftReversal(true),
-      makeBlockchainReversal(true),
-      { backoffMs: 0 },
-    );
+    const rm = new RollbackManager(makeSwiftReversal(true), makeBlockchainReversal(true), {
+      backoffMs: 0,
+    });
 
     const record = await rm.handleSettlementResult(
       sampleGroup,
@@ -617,11 +748,9 @@ describe('RollbackManager — atomic rollback', () => {
   });
 
   it('rolls back blockchain leg when SWIFT leg fails', async () => {
-    const rm = new RollbackManager(
-      makeSwiftReversal(true),
-      makeBlockchainReversal(true),
-      { backoffMs: 0 },
-    );
+    const rm = new RollbackManager(makeSwiftReversal(true), makeBlockchainReversal(true), {
+      backoffMs: 0,
+    });
 
     const record = await rm.handleSettlementResult(
       sampleGroup,

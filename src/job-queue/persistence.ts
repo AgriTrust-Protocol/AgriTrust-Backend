@@ -65,17 +65,23 @@ export class JobQueuePersistence {
     await multi.exec();
   }
 
-
   /**
    * Atomically claim the oldest pending job for a priority level under a lease.
    * The Lua script removes the job from its priority set, stamps lease metadata
    * in the job hash, and records the lease expiry in a global sorted set.
    */
-  async claimDue(priority: Priority, workerId: string, leaseMs: number, now = Date.now()): Promise<QueuedJob | null> {
+  async claimDue(
+    priority: Priority,
+    workerId: string,
+    leaseMs: number,
+    now = Date.now(),
+  ): Promise<QueuedJob | null> {
     const end = jobLeaseClaimDurationSeconds.startTimer();
     try {
       const leaseExpiresAt = now + leaseMs;
-      const result = await (this.redis as unknown as { call: (...args: unknown[]) => Promise<unknown> }).call(
+      const result = await (
+        this.redis as unknown as { call: (...args: unknown[]) => Promise<unknown> }
+      ).call(
         'EVAL',
         `
         local job_id = redis.call('ZRANGE', KEYS[1], 0, 0)[1]
@@ -103,7 +109,12 @@ export class JobQueuePersistence {
       }
 
       const job = JSON.parse(result) as QueuedJob;
-      const claimed: QueuedJob = { ...job, leaseOwner: workerId, leaseExpiresAt, lastClaimedAt: now };
+      const claimed: QueuedJob = {
+        ...job,
+        leaseOwner: workerId,
+        leaseExpiresAt,
+        lastClaimedAt: now,
+      };
       await this.redis.hset(JOB_HASH_KEY, job.id, JSON.stringify(claimed));
       jobLeaseClaimsTotal.inc({ result: 'claimed' });
       return claimed;
@@ -147,7 +158,17 @@ export class JobQueuePersistence {
 
   /** Requeue expired leases so another scheduler instance can claim them. */
   async reclaimExpiredLeases(now = Date.now(), limit = 100): Promise<number> {
-    const ids = (await (this.redis as unknown as { call: (...args: unknown[]) => Promise<unknown> }).call('ZRANGEBYSCORE', LEASE_ZSET_KEY, '0', String(now), 'LIMIT', '0', String(limit))) as string[];
+    const ids = (await (
+      this.redis as unknown as { call: (...args: unknown[]) => Promise<unknown> }
+    ).call(
+      'ZRANGEBYSCORE',
+      LEASE_ZSET_KEY,
+      '0',
+      String(now),
+      'LIMIT',
+      '0',
+      String(limit),
+    )) as string[];
     let reclaimed = 0;
     for (const id of ids) {
       const raw = await this.redis.hget(JOB_HASH_KEY, id);
@@ -230,12 +251,9 @@ export class JobQueuePersistence {
 
   /** List recent dead-lettered jobs, newest first. */
   async listDeadLetters(limit = 100): Promise<DeadLetterJob[]> {
-    const ids = (await (this.redis as unknown as { call: (...args: string[]) => Promise<unknown> }).call(
-      'ZREVRANGE',
-      DLQ_INDEX_KEY,
-      '0',
-      String(Math.max(0, limit - 1)),
-    )) as string[];
+    const ids = (await (
+      this.redis as unknown as { call: (...args: string[]) => Promise<unknown> }
+    ).call('ZREVRANGE', DLQ_INDEX_KEY, '0', String(Math.max(0, limit - 1)))) as string[];
     if (ids.length === 0) return [];
 
     const raws = await this.redis.hmget(DLQ_HASH_KEY, ...ids);

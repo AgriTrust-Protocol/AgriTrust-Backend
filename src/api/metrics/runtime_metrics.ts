@@ -123,14 +123,14 @@ function safePercentile(h: ReturnType<typeof monitorEventLoopDelay>, p: number):
 function collectRuntimeMetrics(): void {
   // 1. Event loop lag – sample current percentiles from perf_hooks histogram
   const meanLagNs = nsOrZero(eventLoopMonitor.mean);
-  const p50LagNs  = safePercentile(eventLoopMonitor, 50);
-  const p90LagNs  = safePercentile(eventLoopMonitor, 90);
-  const p99LagNs  = safePercentile(eventLoopMonitor, 99);
+  const p50LagNs = safePercentile(eventLoopMonitor, 50);
+  const p90LagNs = safePercentile(eventLoopMonitor, 90);
+  const p99LagNs = safePercentile(eventLoopMonitor, 99);
 
   const meanLagSec = meanLagNs / 1e9;
-  const p50LagSec  = p50LagNs  / 1e9;
-  const p90LagSec  = p90LagNs  / 1e9;
-  const p99LagSec  = p99LagNs  / 1e9;
+  const p50LagSec = p50LagNs / 1e9;
+  const p90LagSec = p90LagNs / 1e9;
+  const p99LagSec = p99LagNs / 1e9;
 
   // Reset the perf_hooks histogram so each interval reflects fresh data
   eventLoopMonitor.reset();
@@ -178,9 +178,7 @@ function collectRuntimeMetrics(): void {
     consecutiveBlockedCount++;
     blockedWorkerGauge.set(1);
     if (consecutiveBlockedCount >= 5) {
-      console.warn(
-        'Event loop blocked for >500ms — check for synchronous I/O in hot path',
-      );
+      console.warn('Event loop blocked for >500ms — check for synchronous I/O in hot path');
       consecutiveBlockedCount = 0;
     }
   } else {
@@ -202,7 +200,7 @@ function collectRuntimeMetrics(): void {
  * @param intervalMs  How often to collect metrics (default 15 000 ms).
  *                    The timer is unref'd so it does not prevent process exit.
  */
-function startCollecting(intervalMs: number = 15_000): void {
+function startCollecting(intervalMs = 15_000): void {
   if (collectIntervalId) return;
 
   // Record baseline handle count so we can approximate queue depth

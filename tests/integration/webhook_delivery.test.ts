@@ -8,22 +8,52 @@ import { IdempotencyStore } from '../../src/webhooks/idempotency-store';
 import { MemoryRedis } from '../../src/webhooks/memory-redis';
 import { verifyWebhookSignature } from '../../src/webhooks/signature';
 
-async function mockServer(statuses: number[]): Promise<{ url: string; close: () => Promise<void>; count: () => number; headers: () => Record<string, string | string[] | undefined> }> {
+async function mockServer(statuses: number[]): Promise<{
+  url: string;
+  close: () => Promise<void>;
+  count: () => number;
+  headers: () => Record<string, string | string[] | undefined>;
+}> {
   let attempts = 0;
   let lastHeaders: Record<string, string | string[] | undefined> = {};
-  const server: Server = createServer((req, res) => { attempts += 1; lastHeaders = req.headers; res.statusCode = statuses[Math.min(attempts - 1, statuses.length - 1)]; res.end('ok'); });
+  const server: Server = createServer((req, res) => {
+    attempts += 1;
+    lastHeaders = req.headers;
+    res.statusCode = statuses[Math.min(attempts - 1, statuses.length - 1)];
+    res.end('ok');
+  });
   await new Promise<void>((resolve) => server.listen(0, resolve));
   const address = server.address();
   if (!address || typeof address === 'string') throw new Error('No port');
-  return { url: `http://127.0.0.1:${address.port}/hook`, close: () => new Promise<void>((resolve) => server.close(() => resolve())), count: () => attempts, headers: () => lastHeaders };
+  return {
+    url: `http://127.0.0.1:${address.port}/hook`,
+    close: () => new Promise<void>((resolve) => server.close(() => resolve())),
+    count: () => attempts,
+    headers: () => lastHeaders,
+  };
 }
 
 describe('WebhookDispatcher', () => {
   it('retries 5xx responses and sends idempotency headers', async () => {
     const server = await mockServer([500, 200]);
     const redis = new MemoryRedis();
-    const dispatcher = new WebhookDispatcher(new DeliveryQueue(redis), new IdempotencyStore(redis), new DeadLetterQueue(redis), { ...DEFAULT_WEBHOOK_CONFIG, requestTimeoutMs: 250, workerPollIntervalMs: 1, retryJitterRatio: 0 });
-    const delivery = await dispatcher.dispatch({ tenantId: 'tenant-a', url: server.url, eventType: 'batch.updated', payload: { ok: true } });
+    const dispatcher = new WebhookDispatcher(
+      new DeliveryQueue(redis),
+      new IdempotencyStore(redis),
+      new DeadLetterQueue(redis),
+      {
+        ...DEFAULT_WEBHOOK_CONFIG,
+        requestTimeoutMs: 250,
+        workerPollIntervalMs: 1,
+        retryJitterRatio: 0,
+      },
+    );
+    const delivery = await dispatcher.dispatch({
+      tenantId: 'tenant-a',
+      url: server.url,
+      eventType: 'batch.updated',
+      payload: { ok: true },
+    });
     await dispatcher.tick();
     await new Promise((r) => setTimeout(r, 100));
     await dispatcher.tick(Date.now() + 2_000);
@@ -34,17 +64,34 @@ describe('WebhookDispatcher', () => {
     await server.close();
   });
 
-
   it('signs deliveries so receivers can verify authenticity and freshness', async () => {
     const secret = 'whsec_test';
     const server = await mockServer([200]);
     const redis = new MemoryRedis();
-    const dispatcher = new WebhookDispatcher(new DeliveryQueue(redis), new IdempotencyStore(redis), new DeadLetterQueue(redis), { ...DEFAULT_WEBHOOK_CONFIG, requestTimeoutMs: 250 });
-    await dispatcher.dispatch({ tenantId: 'tenant-a', url: server.url, eventType: 'batch.signed', payload: { batchId: 'b-1' }, secret });
+    const dispatcher = new WebhookDispatcher(
+      new DeliveryQueue(redis),
+      new IdempotencyStore(redis),
+      new DeadLetterQueue(redis),
+      { ...DEFAULT_WEBHOOK_CONFIG, requestTimeoutMs: 250 },
+    );
+    await dispatcher.dispatch({
+      tenantId: 'tenant-a',
+      url: server.url,
+      eventType: 'batch.signed',
+      payload: { batchId: 'b-1' },
+      secret,
+    });
     await dispatcher.tick();
     await new Promise((r) => setTimeout(r, 100));
     const headers = server.headers();
-    expect(verifyWebhookSignature({ secret, body: JSON.stringify({ batchId: 'b-1' }), timestamp: Number(headers['x-agritrust-timestamp']), signatureHeader: String(headers['x-agritrust-signature']) })).toBe(true);
+    expect(
+      verifyWebhookSignature({
+        secret,
+        body: JSON.stringify({ batchId: 'b-1' }),
+        timestamp: Number(headers['x-agritrust-timestamp']),
+        signatureHeader: String(headers['x-agritrust-signature']),
+      }),
+    ).toBe(true);
     await server.close();
   });
 
@@ -53,10 +100,22 @@ describe('WebhookDispatcher', () => {
     const redis = new MemoryRedis();
     const queue = new DeliveryQueue(redis);
     const dlq = new DeadLetterQueue(redis);
-    const dispatcher = new WebhookDispatcher(queue, new IdempotencyStore(redis), dlq, { ...DEFAULT_WEBHOOK_CONFIG, maxRetries: 2, requestTimeoutMs: 250, retryJitterRatio: 0 });
-    await dispatcher.dispatch({ tenantId: 'tenant-a', url: server.url, eventType: 'escrow.settled', payload: { ok: false } });
-    await dispatcher.tick(); await new Promise((r) => setTimeout(r, 100));
-    await dispatcher.tick(Date.now() + 2_000); await new Promise((r) => setTimeout(r, 100));
+    const dispatcher = new WebhookDispatcher(queue, new IdempotencyStore(redis), dlq, {
+      ...DEFAULT_WEBHOOK_CONFIG,
+      maxRetries: 2,
+      requestTimeoutMs: 250,
+      retryJitterRatio: 0,
+    });
+    await dispatcher.dispatch({
+      tenantId: 'tenant-a',
+      url: server.url,
+      eventType: 'escrow.settled',
+      payload: { ok: false },
+    });
+    await dispatcher.tick();
+    await new Promise((r) => setTimeout(r, 100));
+    await dispatcher.tick(Date.now() + 2_000);
+    await new Promise((r) => setTimeout(r, 100));
     expect(await queue.depth()).toBe(0);
     expect((await dlq.list()).length).toBe(1);
     await server.close();

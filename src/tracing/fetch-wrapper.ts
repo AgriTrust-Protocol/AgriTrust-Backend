@@ -7,7 +7,7 @@ export async function tracedFetch(
   url: string,
   options: RequestInit = {},
   baggageManager?: BaggageManager,
-  explicitSpan?: Span
+  explicitSpan?: Span,
 ): Promise<Response> {
   const span = explicitSpan || trace.getSpan(context.active());
   const headers = new Headers(options.headers || {});

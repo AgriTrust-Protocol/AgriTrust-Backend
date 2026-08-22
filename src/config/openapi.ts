@@ -23,10 +23,13 @@ function buildFromConfig(): OpenApiConfig {
 
 function buildFromEnv(): OpenApiConfig {
   const mode = process.env.OPENAPI_ENFORCEMENT_MODE;
-  const normalizedMode: OpenApiEnforcementMode = mode === 'warning' ? 'warning' : mode === 'off' ? 'off' : 'strict';
+  const normalizedMode: OpenApiEnforcementMode =
+    mode === 'warning' ? 'warning' : mode === 'off' ? 'off' : 'strict';
 
   const specPaths = process.env.OPENAPI_SPEC_PATHS
-    ? process.env.OPENAPI_SPEC_PATHS.split(',').map((path) => path.trim()).filter(Boolean)
+    ? process.env.OPENAPI_SPEC_PATHS.split(',')
+        .map((path) => path.trim())
+        .filter(Boolean)
     : ['./src/openapi/v1.yaml', './src/openapi/v2.yaml'];
 
   return { mode: normalizedMode, specPaths };

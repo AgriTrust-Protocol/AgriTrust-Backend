@@ -97,7 +97,10 @@ export class HealthAggregator {
     const status = this.determineOverallState(aggregatedScore);
     this.cascadingModel.setServiceState(service, status);
 
-    const cascadingFailureProbabilityValue = this.cascadingModel.calculateUnhealthyProbability(service, status);
+    const cascadingFailureProbabilityValue = this.cascadingModel.calculateUnhealthyProbability(
+      service,
+      status,
+    );
     const riskyPaths = this.cascadingModel.findRiskyPaths(
       service,
       status,
@@ -106,13 +109,19 @@ export class HealthAggregator {
     const alerts = this.createAlerts(service, status, results, riskyPaths);
     const checks = this.getLatestCheckResults(service);
 
-    this.updateMetrics(service, checks, aggregatedScore, cascadingFailureProbabilityValue, riskyPaths);
+    this.updateMetrics(
+      service,
+      checks,
+      aggregatedScore,
+      cascadingFailureProbabilityValue,
+      riskyPaths,
+    );
 
     return {
       status,
       aggregatedScore: round(aggregatedScore),
       cascadingFailureProbability: round(cascadingFailureProbabilityValue),
-      cascadingPaths: riskyPaths.map(path => ({
+      cascadingPaths: riskyPaths.map((path) => ({
         path: path.path,
         trace: path.path.join(' -> '),
         probability: round(path.probability),
@@ -125,7 +134,7 @@ export class HealthAggregator {
   async evaluateAll(): Promise<Record<ServiceName, ServiceHealthSnapshot>> {
     const services = Array.from(this.getServicesToMonitor());
     const checkResults = await Promise.all(
-      services.map(async service => [service, await this.checker.checkAll(service)] as const),
+      services.map(async (service) => [service, await this.checker.checkAll(service)] as const),
     );
 
     for (const [service, results] of checkResults) {
@@ -166,8 +175,10 @@ export class HealthAggregator {
       statuses[service] = {
         status,
         aggregatedScore: round(aggregatedScore),
-        cascadingFailureProbability: round(this.cascadingModel.calculateUnhealthyProbability(service, status)),
-        cascadingPaths: riskyPaths.map(path => ({
+        cascadingFailureProbability: round(
+          this.cascadingModel.calculateUnhealthyProbability(service, status),
+        ),
+        cascadingPaths: riskyPaths.map((path) => ({
           path: path.path,
           trace: path.path.join(' -> '),
           probability: round(path.probability),
@@ -226,7 +237,7 @@ export class HealthAggregator {
     const cutoff = Date.now() - this.options.aggregationWindowSeconds * 1000;
     this.checkResults.set(
       service,
-      (this.checkResults.get(service) ?? []).filter(result => result.timestamp >= cutoff),
+      (this.checkResults.get(service) ?? []).filter((result) => result.timestamp >= cutoff),
     );
   }
 
@@ -279,7 +290,10 @@ export class HealthAggregator {
     healthAggregatedScore.set({ service }, aggregatedScore);
     cascadingFailureProbability.set({ service, path: 'overall' }, unhealthyProbability);
     for (const riskyPath of riskyPaths) {
-      cascadingFailureProbability.set({ service, path: riskyPath.path.join('->') }, riskyPath.probability);
+      cascadingFailureProbability.set(
+        { service, path: riskyPath.path.join('->') },
+        riskyPath.probability,
+      );
     }
   }
 }

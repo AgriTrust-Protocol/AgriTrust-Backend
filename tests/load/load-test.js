@@ -1,11 +1,11 @@
-const http = require("http");
-const { Worker, parentPort, workerData } = require("worker_threads");
-const path = require("path");
-const fs = require("fs");
-const { MockSensor } = require("./mock-sensor");
+const http = require('http');
+const { Worker, parentPort, workerData } = require('worker_threads');
+const path = require('path');
+const fs = require('fs');
+const { MockSensor } = require('./mock-sensor');
 
-const configPath = path.join(__dirname, "config.json");
-const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+const configPath = path.join(__dirname, 'config.json');
+const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 
 const stats = {
   messagesSent: 0,
@@ -46,13 +46,15 @@ function printReport(stats, durationMs, sensorCount) {
   const durationSec = durationMs / 1000;
   const sorted = [...stats.latencies].sort((a, b) => a - b);
 
-  console.log("\n=== Load Test Report ===");
+  console.log('\n=== Load Test Report ===');
   console.log(`Duration: ${durationSec.toFixed(1)}s`);
   console.log(`Sensors: ${sensorCount}`);
   console.log(`Messages Sent: ${stats.messagesSent}`);
   console.log(`Messages Received: ${stats.messagesReceived}`);
   console.log(`Throughput: ${(stats.messagesReceived / durationSec).toFixed(1)} msg/s`);
-  console.log(`Error Rate: ${((stats.errors / Math.max(stats.messagesSent, 1)) * 100).toFixed(2)}%`);
+  console.log(
+    `Error Rate: ${((stats.errors / Math.max(stats.messagesSent, 1)) * 100).toFixed(2)}%`,
+  );
   console.log(`Connections: ${stats.connections}`);
   console.log(`Dropouts: ${stats.dropouts}`);
   console.log(`Reconnections: ${stats.reconnections}`);
@@ -60,24 +62,32 @@ function printReport(stats, durationMs, sensorCount) {
   console.log(`  P50: ${computePercentiles(sorted, 50).toFixed(1)}`);
   console.log(`  P95: ${computePercentiles(sorted, 95).toFixed(1)}`);
   console.log(`  P99: ${computePercentiles(sorted, 99).toFixed(1)}`);
-  console.log(`  Min: ${sorted[0]?.toFixed(1) ?? "N/A"}`);
-  console.log(`  Max: ${sorted[sorted.length - 1]?.toFixed(1) ?? "N/A"}`);
+  console.log(`  Min: ${sorted[0]?.toFixed(1) ?? 'N/A'}`);
+  console.log(`  Max: ${sorted[sorted.length - 1]?.toFixed(1) ?? 'N/A'}`);
 
   const sent = Math.max(stats.messagesSent, 1);
   const report = {
-    samples: [{
-      route: config.target.endpoint,
-      p99Ms: computePercentiles(sorted, 99),
-      errorRate: stats.errors / sent,
-      availability: stats.messagesReceived / sent,
-      sampleCount: sorted.length,
-    }],
+    samples: [
+      {
+        route: config.target.endpoint,
+        p99Ms: computePercentiles(sorted, 99),
+        errorRate: stats.errors / sent,
+        availability: stats.messagesReceived / sent,
+        sampleCount: sorted.length,
+      },
+    ],
   };
   writeJsonReport(report);
 
-  const passed = stats.errors === 0 && report.samples[0].p99Ms <= 100 && report.samples[0].availability >= 0.9999 && report.samples[0].sampleCount >= 25;
+  const passed =
+    stats.errors === 0 &&
+    report.samples[0].p99Ms <= 100 &&
+    report.samples[0].availability >= 0.9999 &&
+    report.samples[0].sampleCount >= 25;
   if (!passed) {
-    console.error(`Performance budget failed for ${config.target.endpoint}: P99=${report.samples[0].p99Ms.toFixed(1)}ms, availability=${report.samples[0].availability.toFixed(5)}, samples=${report.samples[0].sampleCount}`);
+    console.error(
+      `Performance budget failed for ${config.target.endpoint}: P99=${report.samples[0].p99Ms.toFixed(1)}ms, availability=${report.samples[0].availability.toFixed(5)}, samples=${report.samples[0].sampleCount}`,
+    );
   }
   return passed;
 }
@@ -103,7 +113,7 @@ function runWorkerSimulation(sensorCount, durationMs) {
 
 async function main() {
   const args = process.argv.slice(2);
-  const ciMode = args.includes("--ci");
+  const ciMode = args.includes('--ci');
 
   if (ciMode) {
     config.simulation.telemetryIntervalMs = { min: 100, max: 250 };
@@ -112,15 +122,13 @@ async function main() {
     config.simulation.dropoutProbability = 0;
   }
 
-  const sensorCount = ciMode
-    ? config.simulation.ciSensorCount
-    : config.simulation.sensorCount;
-  const durationMs = ciMode
-    ? config.simulation.ciTestDurationMs
-    : config.simulation.testDurationMs;
+  const sensorCount = ciMode ? config.simulation.ciSensorCount : config.simulation.sensorCount;
+  const durationMs = ciMode ? config.simulation.ciTestDurationMs : config.simulation.testDurationMs;
 
-  console.log(`AgriTrust Load Test (${ciMode ? "CI" : "full"} mode)`);
-  console.log(`Target: http://${config.target.host}:${config.target.port}${config.target.endpoint}`);
+  console.log(`AgriTrust Load Test (${ciMode ? 'CI' : 'full'} mode)`);
+  console.log(
+    `Target: http://${config.target.host}:${config.target.port}${config.target.endpoint}`,
+  );
 
   const workerCount = config.workers;
   const sensorsPerWorker = Math.ceil(sensorCount / workerCount);
@@ -130,9 +138,7 @@ async function main() {
     let completed = 0;
 
     for (let i = 0; i < workerCount; i++) {
-      const count = i === workerCount - 1
-        ? sensorCount - i * sensorsPerWorker
-        : sensorsPerWorker;
+      const count = i === workerCount - 1 ? sensorCount - i * sensorsPerWorker : sensorsPerWorker;
 
       const w = new Worker(__filename, {
         workerData: {
@@ -142,8 +148,8 @@ async function main() {
         },
       });
 
-      w.on("message", (msg) => {
-        if (msg.type === "done") {
+      w.on('message', (msg) => {
+        if (msg.type === 'done') {
           stats.messagesSent += msg.stats.messagesSent;
           stats.messagesReceived += msg.stats.messagesReceived;
           stats.errors += msg.stats.errors;
@@ -159,7 +165,7 @@ async function main() {
         }
       });
 
-      w.on("error", (err) => {
+      w.on('error', (err) => {
         console.error(`Worker ${i} error:`, err);
         completed++;
       });
@@ -179,7 +185,7 @@ if (workerData) {
   const { sensorCount, durationMs } = workerData;
   runWorkerSimulation(sensorCount, durationMs).then(() => {
     parentPort.postMessage({
-      type: "done",
+      type: 'done',
       stats: {
         messagesSent: stats.messagesSent,
         messagesReceived: stats.messagesReceived,
@@ -193,7 +199,7 @@ if (workerData) {
   });
 } else {
   main().catch((err) => {
-    console.error("Load test failed:", err);
+    console.error('Load test failed:', err);
     process.exit(1);
   });
 }

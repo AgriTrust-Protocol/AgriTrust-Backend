@@ -1,4 +1,8 @@
-import { SorobanRpcClient, SorobanRpcConfig, RawSimulationResult } from '../blockchain/soroban_bridge';
+import {
+  SorobanRpcClient,
+  SorobanRpcConfig,
+  RawSimulationResult,
+} from '../blockchain/soroban_bridge';
 
 export interface SorobanTelemetry {
   p99LatencyMs: number;
@@ -11,7 +15,7 @@ export class SorobanRpcService {
   private gasPriceXlm = 0.001;
   private readonly maxSamples: number;
 
-  constructor(config: SorobanRpcConfig, maxSamples: number = 512) {
+  constructor(config: SorobanRpcConfig, maxSamples = 512) {
     this.client = new SorobanRpcClient(config);
     this.maxSamples = maxSamples;
   }

@@ -4,7 +4,7 @@ import { PgKeyStore, KeyPurpose } from '../../crypto/key-store';
 
 export function createAdminKeysRouter(
   orchestrator: KeyRotationOrchestrator,
-  keyStore: PgKeyStore
+  keyStore: PgKeyStore,
 ): Router {
   const router = Router();
 
@@ -37,7 +37,7 @@ export function createAdminKeysRouter(
         const newKey = await orchestrator.rotateKey(purpose as KeyPurpose);
         return res.json({
           message: `Key rotated for ${purpose}`,
-          fingerprint: newKey.fingerprint
+          fingerprint: newKey.fingerprint,
         });
       } else {
         await orchestrator.rotateAllPurposes();

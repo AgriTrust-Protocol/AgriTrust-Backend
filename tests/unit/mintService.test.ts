@@ -31,8 +31,13 @@ describe('MintService Race Condition (Unit/Mock)', () => {
     const result = await mintService.mintCertificate(batchId, {});
 
     expect(result.success).toBe(true);
-    expect(mockClient.query).toHaveBeenCalledWith('SELECT pg_advisory_lock($1)', [expect.any(BigInt)]);
-    expect(mockClient.query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO certificates'), expect.anything());
+    expect(mockClient.query).toHaveBeenCalledWith('SELECT pg_advisory_lock($1)', [
+      expect.any(BigInt),
+    ]);
+    expect(mockClient.query).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO certificates'),
+      expect.anything(),
+    );
   });
 
   it('returns existing certificate if already minted', async () => {
@@ -47,7 +52,10 @@ describe('MintService Race Condition (Unit/Mock)', () => {
     expect(result.success).toBe(true);
     expect(result.certificateId).toBe('cert_existing');
     // Should NOT try to insert or update
-    expect(mockClient.query).not.toHaveBeenCalledWith(expect.stringContaining('INSERT INTO certificates'), expect.anything());
+    expect(mockClient.query).not.toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO certificates'),
+      expect.anything(),
+    );
   });
 
   it('returns error if minting is already in progress', async () => {

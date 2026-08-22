@@ -57,10 +57,7 @@ export class ColdStorageArchiver {
   async archiveOnce(): Promise<ArchiveSummary> {
     return timed('archive', async () => {
       const cutoff = new Date(this.now().getTime() - this.retentionDays * MS_PER_DAY);
-      const events = await this.persistence.readEventsOlderThan(
-        cutoff,
-        this.batchSize,
-      );
+      const events = await this.persistence.readEventsOlderThan(cutoff, this.batchSize);
       if (events.length === 0) {
         return { archivedCount: 0, objects: [] };
       }
@@ -70,9 +67,7 @@ export class ColdStorageArchiver {
 
       for (const [prefix, group] of partitions) {
         const key = `${prefix}${group[0].globalSeq}-${group[group.length - 1].globalSeq}.json.gz`;
-        const body = zlib.gzipSync(
-          Buffer.from(JSON.stringify(group.map(stripInternal)), 'utf8'),
-        );
+        const body = zlib.gzipSync(Buffer.from(JSON.stringify(group.map(stripInternal)), 'utf8'));
         await this.store.putObject(key, body);
         await this.persistence.markArchived(
           group.map((e) => e.globalSeq),
@@ -86,9 +81,7 @@ export class ColdStorageArchiver {
   }
 
   /** Groups events into `events/year=YYYY/month=MM/` partitions. */
-  private partitionByMonth(
-    events: ArchivableEvent[],
-  ): Map<string, ArchivableEvent[]> {
+  private partitionByMonth(events: ArchivableEvent[]): Map<string, ArchivableEvent[]> {
     const groups = new Map<string, ArchivableEvent[]>();
     for (const e of events) {
       const d = e.createdAtDate;

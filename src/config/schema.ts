@@ -32,7 +32,11 @@ export const configSchema: JSONSchemaType<AppConfig> = {
   type: 'object',
   properties: {
     port: { type: 'integer', minimum: 1, maximum: 65535, default: 3000 },
-    nodeEnv: { type: 'string', enum: ['development', 'production', 'test'], default: 'development' },
+    nodeEnv: {
+      type: 'string',
+      enum: ['development', 'production', 'test'],
+      default: 'development',
+    },
     databaseUrl: { type: 'string', minLength: 1 },
     databasePoolMin: { type: 'integer', minimum: 0, maximum: 256, default: 2 },
     databasePoolMax: { type: 'integer', minimum: 1, maximum: 512, default: 20 },
@@ -45,7 +49,11 @@ export const configSchema: JSONSchemaType<AppConfig> = {
     redisPoolMax: { type: 'integer', minimum: 1, maximum: 256, default: 10 },
     logLevel: { type: 'string', enum: ['debug', 'info', 'warn', 'error'], default: 'info' },
     logFormat: { type: 'string', enum: ['text', 'json'], default: 'json' },
-    openapiEnforcementMode: { type: 'string', enum: ['strict', 'warning', 'off'], default: 'strict' },
+    openapiEnforcementMode: {
+      type: 'string',
+      enum: ['strict', 'warning', 'off'],
+      default: 'strict',
+    },
     openapiSpecPaths: {
       type: 'array',
       items: { type: 'string' },
@@ -82,9 +90,7 @@ export function redactSensitiveValues(config: Record<string, unknown>): Record<s
   for (const [key, value] of Object.entries(config)) {
     if (SENSITIVE_KEYS.has(key)) {
       const str = String(value);
-      result[key] = str.length > 8
-        ? str.slice(0, 4) + '****' + str.slice(-4)
-        : '****';
+      result[key] = str.length > 8 ? str.slice(0, 4) + '****' + str.slice(-4) : '****';
     } else {
       result[key] = value;
     }

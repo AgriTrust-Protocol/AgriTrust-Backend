@@ -56,11 +56,13 @@ describe('SLO burn rate evaluation', () => {
   });
 
   it('rejects impossible event counts', () => {
-    expect(() => evaluateBurnRate(AVAILABILITY_99_99, {
-      label: '5m',
-      durationHours: 5 / 60,
-      totalEvents: 10,
-      badEvents: 11,
-    })).toThrow('badEvents cannot exceed totalEvents');
+    expect(() =>
+      evaluateBurnRate(AVAILABILITY_99_99, {
+        label: '5m',
+        durationHours: 5 / 60,
+        totalEvents: 10,
+        badEvents: 11,
+      }),
+    ).toThrow('badEvents cannot exceed totalEvents');
   });
 });

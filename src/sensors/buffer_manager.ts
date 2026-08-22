@@ -13,11 +13,11 @@ class SlidingWindowBuffer extends Readable {
   private capacity: number;
   private highWatermark: number;
   private lowWatermark: number;
-  private framesWritten: number = 0;
-  private framesDropped: number = 0;
-  private _paused: boolean = false;
+  private framesWritten = 0;
+  private framesDropped = 0;
+  private _paused = false;
 
-  constructor(capacity: number = 100000, opts?: ReadableOptions) {
+  constructor(capacity = 100000, opts?: ReadableOptions) {
     super({
       objectMode: true,
       highWaterMark: 1024,

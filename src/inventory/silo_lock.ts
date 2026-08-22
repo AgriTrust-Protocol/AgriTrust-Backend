@@ -31,7 +31,7 @@ function hashSiloBin(siloId: number, binId: number): bigint {
 export async function acquireSiloBinLock(
   siloId: number,
   binId: number,
-  timeoutMs: number = 5000,
+  timeoutMs = 5000,
 ): Promise<boolean> {
   const requestId = uuidv4();
   const key = lockKey(siloId, binId);
@@ -105,10 +105,7 @@ export async function acquireSiloBinLock(
   });
 }
 
-export async function releaseSiloBinLock(
-  siloId: number,
-  binId: number,
-): Promise<boolean> {
+export async function releaseSiloBinLock(siloId: number, binId: number): Promise<boolean> {
   const key = lockKey(siloId, binId);
   const handle = activeLocks.get(key);
   if (!handle) {

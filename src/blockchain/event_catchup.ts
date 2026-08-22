@@ -182,10 +182,7 @@ export class EventCatchupWorker {
         await this.processor.insertEvents(events);
       }
 
-      await this.pool.query(
-        "UPDATE ledger_gaps SET status = 'filled' WHERE id = $1",
-        [gapId],
-      );
+      await this.pool.query("UPDATE ledger_gaps SET status = 'filled' WHERE id = $1", [gapId]);
     } catch (err) {
       await this.pool.query(
         `UPDATE ledger_gaps

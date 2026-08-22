@@ -39,10 +39,7 @@ export const err = (reason: string): StepErr => ({ ok: false, err: true, reason 
  * `(saga_id, step_index)` as required by the execution invariants.
  */
 export function idempotencyKey(sagaId: string, stepIndex: number): string {
-  return crypto
-    .createHash('sha256')
-    .update(`${sagaId}:${stepIndex}`)
-    .digest('hex');
+  return crypto.createHash('sha256').update(`${sagaId}:${stepIndex}`).digest('hex');
 }
 
 /**

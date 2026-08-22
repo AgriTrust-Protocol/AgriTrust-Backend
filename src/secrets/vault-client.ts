@@ -28,7 +28,10 @@ export class VaultClient {
     this.scheduleTokenRenewal(60 * 60);
   }
 
-  async read<T = Record<string, unknown>>(path: string, audit = true): Promise<VaultSecretResponse<T>> {
+  async read<T = Record<string, unknown>>(
+    path: string,
+    audit = true,
+  ): Promise<VaultSecretResponse<T>> {
     if (audit) await this.auditLogger.logAccess(path);
     const payload = await this.request<VaultApiResponse>('GET', `/v1/${path}`);
     const data = payload.data?.data ?? payload.data ?? {};
@@ -40,7 +43,10 @@ export class VaultClient {
     };
   }
 
-  async renewLease(leaseId: string, incrementSeconds: number): Promise<{ ttlSeconds: number; renewable: boolean }> {
+  async renewLease(
+    leaseId: string,
+    incrementSeconds: number,
+  ): Promise<{ ttlSeconds: number; renewable: boolean }> {
     const payload = await this.request<VaultApiResponse>('PUT', '/v1/sys/leases/renew', {
       lease_id: leaseId,
       increment: incrementSeconds,
@@ -52,7 +58,9 @@ export class VaultClient {
   }
 
   async renewTokenSelf(incrementSeconds = 3600): Promise<void> {
-    const payload = await this.request<VaultApiResponse>('POST', '/v1/auth/token/renew-self', { increment: incrementSeconds });
+    const payload = await this.request<VaultApiResponse>('POST', '/v1/auth/token/renew-self', {
+      increment: incrementSeconds,
+    });
     const ttl = payload.auth?.lease_duration ?? payload.lease_duration ?? incrementSeconds;
     this.scheduleTokenRenewal(ttl);
   }
@@ -73,7 +81,9 @@ export class VaultClient {
       body: body ? JSON.stringify(body) : undefined,
     });
     if (!response.ok) {
-      throw new Error(`Vault ${method} ${path} failed: ${response.status} ${await response.text()}`);
+      throw new Error(
+        `Vault ${method} ${path} failed: ${response.status} ${await response.text()}`,
+      );
     }
     return response.json() as Promise<T>;
   }

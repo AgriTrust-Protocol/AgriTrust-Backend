@@ -6,7 +6,7 @@ import { PreflightOptions, ResourceFootprint } from '../src/blockchain/types';
 
 class MockSorobanRpcClient extends SorobanRpcClient {
   private mockResult: RawSimulationResult | null = null;
-  private shouldError: boolean = false;
+  private shouldError = false;
 
   constructor() {
     super({ rpcUrl: 'http://mock', timeoutMs: 5000 });

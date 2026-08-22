@@ -7,10 +7,20 @@ import { Propagator, PROPAGATION_CHANNEL, RedisPubSubClient } from '../propagato
 
 class MemoryHashRedis {
   private hashes = new Map<string, Map<string, string>>();
-  async hset(k: string, f: string, v: string) { if (!this.hashes.has(k)) this.hashes.set(k, new Map()); this.hashes.get(k)!.set(f, v); return 1; }
-  async hget(k: string, f: string) { return this.hashes.get(k)?.get(f) ?? null; }
-  async hdel(k: string, f: string) { return this.hashes.get(k)?.delete(f) ? 1 : 0; }
-  async hvals(k: string) { return [...(this.hashes.get(k)?.values() ?? [])]; }
+  async hset(k: string, f: string, v: string) {
+    if (!this.hashes.has(k)) this.hashes.set(k, new Map());
+    this.hashes.get(k)!.set(f, v);
+    return 1;
+  }
+  async hget(k: string, f: string) {
+    return this.hashes.get(k)?.get(f) ?? null;
+  }
+  async hdel(k: string, f: string) {
+    return this.hashes.get(k)?.delete(f) ? 1 : 0;
+  }
+  async hvals(k: string) {
+    return [...(this.hashes.get(k)?.values() ?? [])];
+  }
 }
 
 /** Simulates a Redis subscriber — lets tests trigger messages manually. */
@@ -32,7 +42,9 @@ class SimulatedSubscriber implements RedisPubSubClient {
     for (const l of this.listeners) l(channel, message);
   }
 
-  isSubscribed() { return this.subscribed; }
+  isSubscribed() {
+    return this.subscribed;
+  }
 }
 
 /** Minimal publish mock. */
@@ -49,20 +61,24 @@ function makePublisher() {
 }
 
 const SAMPLE_FLAG: FlagDefinition = {
-  key: 'prop-flag', enabled: true, rolloutPercentage: 50,
-  targetingRules: [], payload: { v: 1 }, variants: [],
+  key: 'prop-flag',
+  enabled: true,
+  rolloutPercentage: 50,
+  targetingRules: [],
+  payload: { v: 1 },
+  variants: [],
 };
 
 describe('Propagator', () => {
-  let engine:     FeatureEngine;
-  let store:      ConfigStore;
+  let engine: FeatureEngine;
+  let store: ConfigStore;
   let propagator: Propagator;
   let subscriber: SimulatedSubscriber;
 
   beforeEach(async () => {
-    engine     = new FeatureEngine();
+    engine = new FeatureEngine();
     const redis = new MemoryHashRedis();
-    store      = new ConfigStore(engine, redis);
+    store = new ConfigStore(engine, redis);
     store.stop();
     propagator = new Propagator(engine, store);
     subscriber = new SimulatedSubscriber();

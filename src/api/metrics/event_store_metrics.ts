@@ -9,12 +9,7 @@
 import { Summary } from 'prom-client';
 import { metricsRegistry } from './registry';
 
-export type EventStoreOperation =
-  | 'append'
-  | 'rehydrate'
-  | 'snapshot'
-  | 'archive'
-  | 'read';
+export type EventStoreOperation = 'append' | 'rehydrate' | 'snapshot' | 'archive' | 'read';
 
 export const eventStoreReadDuration = new Summary({
   name: 'event_store_read_duration_ms',
@@ -28,10 +23,7 @@ export const eventStoreReadDuration = new Summary({
  * Times an async operation and records its duration against the summary.
  * The duration is observed even when the operation throws.
  */
-export async function timed<T>(
-  operation: EventStoreOperation,
-  fn: () => Promise<T>,
-): Promise<T> {
+export async function timed<T>(operation: EventStoreOperation, fn: () => Promise<T>): Promise<T> {
   const start = Date.now();
   try {
     return await fn();

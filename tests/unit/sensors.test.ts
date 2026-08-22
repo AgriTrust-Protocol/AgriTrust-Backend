@@ -49,10 +49,7 @@ function testBufferBurstLarge(): void {
 
   const dropped = buffer.getFramesDropped();
   const expectedDropped = TOTAL_FRAMES - CAPACITY;
-  assert(
-    dropped === expectedDropped,
-    `Exactly ${expectedDropped} frames dropped (got ${dropped})`,
-  );
+  assert(dropped === expectedDropped, `Exactly ${expectedDropped} frames dropped (got ${dropped})`);
 
   assert(
     pauseCount >= 1,
@@ -63,10 +60,7 @@ function testBufferBurstLarge(): void {
     `Pause triggered when buffer length (${pauseAtLength}) >= highWatermark (${HIGH_WATERMARK})`,
   );
 
-  assert(
-    buffer.isPaused() === true,
-    'Buffer reports paused state after high water exceeded',
-  );
+  assert(buffer.isPaused() === true, 'Buffer reports paused state after high water exceeded');
 
   assert(
     buffer.getEstimatedBytes() === retained * 1200,
@@ -90,21 +84,19 @@ function testBufferResumeSmall(): void {
   let pauseCount = 0;
   let resumeCount = 0;
 
-  buffer.on('pause', () => { pauseCount++; });
-  buffer.on('resume', () => { resumeCount++; });
+  buffer.on('pause', () => {
+    pauseCount++;
+  });
+  buffer.on('resume', () => {
+    resumeCount++;
+  });
 
   for (let i = 0; i < CAPACITY; i++) {
     buffer.write(makeFrame(`sensor-${i}`));
   }
 
-  assert(
-    pauseCount === 1,
-    'Pause event fired exactly once after filling buffer to capacity',
-  );
-  assert(
-    buffer.getBufferLength() === CAPACITY,
-    `Buffer holds ${CAPACITY} frames after filling`,
-  );
+  assert(pauseCount === 1, 'Pause event fired exactly once after filling buffer to capacity');
+  assert(buffer.getBufferLength() === CAPACITY, `Buffer holds ${CAPACITY} frames after filling`);
 
   const READ_TARGET = CAPACITY - LOW_WATERMARK;
   for (let i = 0; i < READ_TARGET; i++) {
@@ -120,10 +112,7 @@ function testBufferResumeSmall(): void {
     resumeCount >= 1,
     `Resume event emitted after draining below low watermark (resumed ${resumeCount} times)`,
   );
-  assert(
-    buffer.isPaused() === false,
-    'Buffer is no longer in paused state after resume',
-  );
+  assert(buffer.isPaused() === false, 'Buffer is no longer in paused state after resume');
 
   console.log('  -> Buffer resume test: all assertions passed');
 }
@@ -149,10 +138,7 @@ function testNoSilentDrops(): void {
     totalDropped === TOTAL_FRAMES - CAPACITY,
     `Drop counter matches: ${totalDropped} === ${TOTAL_FRAMES - CAPACITY}`,
   );
-  assert(
-    retained === CAPACITY,
-    `Retained frames equals capacity: ${retained} === ${CAPACITY}`,
-  );
+  assert(retained === CAPACITY, `Retained frames equals capacity: ${retained} === ${CAPACITY}`);
 
   const observed = totalDropped + retained;
   assert(
@@ -170,10 +156,7 @@ function testBackpressureTransitions(): void {
     bp.getLevel('sensor-alpha') === BackpressureLevel.NORMAL,
     'Initial level is NORMAL for unknown sensor',
   );
-  assert(
-    bp.globalBackpressure === false,
-    'Initial global backpressure is false',
-  );
+  assert(bp.globalBackpressure === false, 'Initial global backpressure is false');
 
   const changes: Array<{ sensorId: string; prev: BackpressureLevel; next: BackpressureLevel }> = [];
   bp.on('levelChange', (sensorId: string, prev: BackpressureLevel, next: BackpressureLevel) => {
@@ -190,50 +173,32 @@ function testBackpressureTransitions(): void {
     bp.getLevel('sensor-alpha') === BackpressureLevel.WARNING,
     'sensor-alpha level updated to WARNING',
   );
-  assert(
-    bp.globalBackpressure === true,
-    'Global backpressure true after WARNING',
-  );
-  assert(
-    changes.length === 1,
-    'One levelChange event emitted for WARNING transition',
-  );
+  assert(bp.globalBackpressure === true, 'Global backpressure true after WARNING');
+  assert(changes.length === 1, 'One levelChange event emitted for WARNING transition');
 
   const signal = bp.getSignal('sensor-alpha');
-  assert(
-    signal !== undefined && signal[0] === 1,
-    'Signal byte is 1 (pause) for WARNING level',
-  );
+  assert(signal !== undefined && signal[0] === 1, 'Signal byte is 1 (pause) for WARNING level');
 
   bp.setBackpressure('sensor-alpha', BackpressureLevel.CRITICAL);
   assert(
     bp.getLevel('sensor-alpha') === BackpressureLevel.CRITICAL,
     'sensor-alpha level updated to CRITICAL',
   );
-  assert(
-    changes.length === 2,
-    'LevelChange event for CRITICAL transition',
-  );
+  assert(changes.length === 2, 'LevelChange event for CRITICAL transition');
 
   bp.setBackpressure('sensor-alpha', BackpressureLevel.NORMAL);
   assert(
     bp.getLevel('sensor-alpha') === BackpressureLevel.NORMAL,
     'sensor-alpha level reset to NORMAL',
   );
-  assert(
-    bp.globalBackpressure === false,
-    'Global backpressure false after all sensors NORMAL',
-  );
+  assert(bp.globalBackpressure === false, 'Global backpressure false after all sensors NORMAL');
 
   const resumeSignal = bp.getSignal('sensor-alpha');
   assert(
     resumeSignal !== undefined && resumeSignal[0] === 0,
     'Signal byte is 0 (resume) for NORMAL level',
   );
-  assert(
-    changes.length >= 2,
-    `At least two transitions recorded (got ${changes.length})`,
-  );
+  assert(changes.length >= 2, `At least two transitions recorded (got ${changes.length})`);
 
   const expectedPrev = BackpressureLevel.NORMAL;
   const expectedNext = BackpressureLevel.WARNING;
@@ -247,10 +212,7 @@ function testBackpressureTransitions(): void {
     bp.getLevel('sensor-alpha') === BackpressureLevel.NORMAL,
     'Level reverts to NORMAL after reset',
   );
-  assert(
-    bp.globalBackpressure === false,
-    'Global backpressure false after reset',
-  );
+  assert(bp.globalBackpressure === false, 'Global backpressure false after reset');
 
   console.log('  -> Backpressure level transitions: all assertions passed');
 }

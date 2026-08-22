@@ -62,11 +62,20 @@ export function canonicalJson(value: unknown): string {
   if (value === null || typeof value !== 'object') return JSON.stringify(value);
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
   const obj = value as Record<string, unknown>;
-  return `{${Object.keys(obj).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(obj[key])}`).join(',')}}`;
+  return `{${Object.keys(obj)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonicalJson(obj[key])}`)
+    .join(',')}}`;
 }
 
-export function computeAuditHash(prevHash: Buffer, eventId: string, timestamp: Date | string, payload: unknown): Buffer {
-  const timestampIso = timestamp instanceof Date ? timestamp.toISOString() : new Date(timestamp).toISOString();
+export function computeAuditHash(
+  prevHash: Buffer,
+  eventId: string,
+  timestamp: Date | string,
+  payload: unknown,
+): Buffer {
+  const timestampIso =
+    timestamp instanceof Date ? timestamp.toISOString() : new Date(timestamp).toISOString();
   return createHash('sha256')
     .update(prevHash)
     .update(eventId)
@@ -103,7 +112,17 @@ export class FarmActivityAuditService {
           (event_id, farm_id, activity_type, timestamp, actor_id, location, payload, prev_hash, hash)
          VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9)
          RETURNING event_id, farm_id, activity_type, timestamp, actor_id, location, payload, prev_hash, hash, archived_at, cold_storage_key`,
-        [eventId, input.farmId, input.activityType, timestamp, input.actorId, input.location, input.payload, prevHash, hash],
+        [
+          eventId,
+          input.farmId,
+          input.activityType,
+          timestamp,
+          input.actorId,
+          input.location,
+          input.payload,
+          prevHash,
+          hash,
+        ],
       );
       await client.query('COMMIT');
       return mapRecord(inserted.rows[0]);
@@ -136,7 +155,10 @@ export class FarmActivityAuditService {
   }
 
   async generateProof(eventId: string): Promise<AuditProof> {
-    const anchor = await this.pool.query('SELECT farm_id, timestamp, inserted_at FROM farm_activity_audit_events WHERE event_id = $1', [eventId]);
+    const anchor = await this.pool.query(
+      'SELECT farm_id, timestamp, inserted_at FROM farm_activity_audit_events WHERE event_id = $1',
+      [eventId],
+    );
     if (!anchor.rows[0]) throw new Error('Audit event not found');
     const result = await this.pool.query(
       `SELECT event_id, timestamp, payload, prev_hash, hash
@@ -160,15 +182,25 @@ export class FarmActivityAuditService {
     let expectedPrev: string | null = null;
     for (const step of proof.steps) {
       if (expectedPrev && step.prevHash !== expectedPrev) return false;
-      const computed = computeAuditHash(Buffer.from(step.prevHash, 'hex'), step.eventId, step.timestamp, step.payload).toString('hex');
+      const computed = computeAuditHash(
+        Buffer.from(step.prevHash, 'hex'),
+        step.eventId,
+        step.timestamp,
+        step.payload,
+      ).toString('hex');
       if (computed !== step.hash) return false;
       expectedPrev = step.hash;
     }
     return proof.latestEventId === proof.steps[proof.steps.length - 1].eventId;
   }
 
-  async archiveExpiredEvents(store: AuditArchiveStore, options: { retentionYears?: number; now?: Date; batchSize?: number } = {}) {
-    const cutoff = new Date((options.now ?? new Date()).getTime() - (options.retentionYears ?? 7) * 365 * MS_PER_DAY);
+  async archiveExpiredEvents(
+    store: AuditArchiveStore,
+    options: { retentionYears?: number; now?: Date; batchSize?: number } = {},
+  ) {
+    const cutoff = new Date(
+      (options.now ?? new Date()).getTime() - (options.retentionYears ?? 7) * 365 * MS_PER_DAY,
+    );
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');

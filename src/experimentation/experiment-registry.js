@@ -3,15 +3,15 @@ class ExperimentRegistry {
 
   static create(experiment) {
     if (this.getActiveCount() >= 5) {
-      throw new Error("Maximum concurrent experiments limit (5) reached.");
+      throw new Error('Maximum concurrent experiments limit (5) reached.');
     }
-    
+
     const id = Math.random().toString(36).substring(2, 11);
     const newExperiment = {
       ...experiment,
       id,
       status: 'Created',
-      createdAt: new Date()
+      createdAt: new Date(),
     };
     this.experiments.set(id, newExperiment);
     return newExperiment;
@@ -38,7 +38,7 @@ class ExperimentRegistry {
 
   static getActiveCount() {
     return Array.from(this.experiments.values()).filter(
-      e => e.status === 'Running' || e.status === 'Evaluating'
+      (e) => e.status === 'Running' || e.status === 'Evaluating',
     ).length;
   }
 }

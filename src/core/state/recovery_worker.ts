@@ -32,10 +32,7 @@ export class RecoveryWorker {
 
   start(): void {
     if (this.timer) return;
-    this.timer = setInterval(
-      () => void this.tick(),
-      this.config.intervalMs ?? DEFAULT_INTERVAL_MS,
-    );
+    this.timer = setInterval(() => void this.tick(), this.config.intervalMs ?? DEFAULT_INTERVAL_MS);
   }
 
   stop(): void {
@@ -72,8 +69,7 @@ export class RecoveryWorker {
 
   private async resolve(row: PendingTransactionRow): Promise<boolean> {
     if (row.soroban_hash && this.submitter) {
-      const status: SorobanTxStatus =
-        await this.submitter.getTransactionStatus(row.soroban_hash);
+      const status: SorobanTxStatus = await this.submitter.getTransactionStatus(row.soroban_hash);
 
       if (status.status === 'SUCCESS') {
         const ledgerHash = status.ledgerHash ?? row.soroban_hash;

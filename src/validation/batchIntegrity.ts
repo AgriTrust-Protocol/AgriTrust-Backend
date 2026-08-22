@@ -41,16 +41,13 @@ export async function validateBatchData(
     await client.query('BEGIN');
 
     // Advisory lock: serialise per (batch, source).
-    await client.query(
-      `SELECT pg_advisory_xact_lock(batch_source_lock_key($1, $2))`,
-      [batchId, source],
-    );
+    await client.query(`SELECT pg_advisory_xact_lock(batch_source_lock_key($1, $2))`, [
+      batchId,
+      source,
+    ]);
 
     // Row lock: guard against concurrent batch updates.
-    await client.query(
-      `SELECT id FROM batches WHERE id = $1 FOR UPDATE`,
-      [batchId],
-    );
+    await client.query(`SELECT id FROM batches WHERE id = $1 FOR UPDATE`, [batchId]);
 
     await client.query(
       `INSERT INTO batch_hash_log (batch_id, source, source_hash)

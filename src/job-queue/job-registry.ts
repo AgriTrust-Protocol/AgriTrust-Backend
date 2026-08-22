@@ -49,10 +49,12 @@ export class JobRegistry {
   /** Get resource budget for a job type. */
   getBudget(type: string): ResourceBudget {
     const def = this.defs.get(type);
-    return def?.resourceBudget ?? {
-      maxConcurrency: 1,
-      timeoutMs: 300_000,
-      retryLimit: 2,
-    };
+    return (
+      def?.resourceBudget ?? {
+        maxConcurrency: 1,
+        timeoutMs: 300_000,
+        retryLimit: 2,
+      }
+    );
   }
 }

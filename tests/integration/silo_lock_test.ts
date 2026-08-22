@@ -19,7 +19,13 @@ interface WorkerMessage {
 function runWorker(workerId: number): Promise<WorkerMessage> {
   return new Promise((resolve, reject) => {
     const worker = new Worker(WORKER_PATH, {
-      workerData: { workerId, siloId: SILO_ID, binId: BIN_ID, ticketWeight: TICKET_WEIGHT, deposits: DEPOSITS_PER_WORKER },
+      workerData: {
+        workerId,
+        siloId: SILO_ID,
+        binId: BIN_ID,
+        ticketWeight: TICKET_WEIGHT,
+        deposits: DEPOSITS_PER_WORKER,
+      },
     });
 
     worker.on('message', resolve);
@@ -36,8 +42,12 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`Starting concurrency test with ${CONCURRENT_WORKERS} workers x ${DEPOSITS_PER_WORKER} deposits each`);
-  console.log(`Expected final balance: ${CONCURRENT_WORKERS * DEPOSITS_PER_WORKER * TICKET_WEIGHT} kg`);
+  console.log(
+    `Starting concurrency test with ${CONCURRENT_WORKERS} workers x ${DEPOSITS_PER_WORKER} deposits each`,
+  );
+  console.log(
+    `Expected final balance: ${CONCURRENT_WORKERS * DEPOSITS_PER_WORKER * TICKET_WEIGHT} kg`,
+  );
 
   const startTime = Date.now();
 

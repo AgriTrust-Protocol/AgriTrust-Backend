@@ -45,13 +45,16 @@ export function createDefaultHealthAggregator(): HealthAggregator {
   return new HealthAggregator(graph);
 }
 
-function summarizeServices(services: Record<string, { status: string; cascadingPaths: unknown[] }>) {
+function summarizeServices(
+  services: Record<string, { status: string; cascadingPaths: unknown[] }>,
+) {
   const entries = Object.values(services);
   return {
     totalServices: entries.length,
-    healthy: entries.filter(service => service.status === 'healthy').length,
-    degraded: entries.filter(service => service.status === 'degraded').length,
-    unhealthy: entries.filter(service => service.status === 'unhealthy').length,
-    servicesWithCascadingRisk: entries.filter(service => service.cascadingPaths.length > 0).length,
+    healthy: entries.filter((service) => service.status === 'healthy').length,
+    degraded: entries.filter((service) => service.status === 'degraded').length,
+    unhealthy: entries.filter((service) => service.status === 'unhealthy').length,
+    servicesWithCascadingRisk: entries.filter((service) => service.cascadingPaths.length > 0)
+      .length,
   };
 }

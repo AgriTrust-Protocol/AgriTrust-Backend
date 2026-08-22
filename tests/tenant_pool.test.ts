@@ -12,12 +12,16 @@ function makeFakePool(max: number, initialAcquired = 0) {
         if (state.acquired < state.max) {
           state.acquired++;
           return {
-            release: async () => { state.acquired = Math.max(0, state.acquired - 1); },
+            release: async () => {
+              state.acquired = Math.max(0, state.acquired - 1);
+            },
           } as any;
         }
         throw new Error('no-conn');
       },
-      on: (_ev: string, _cb: any) => { /* no-op */ },
+      on: (_ev: string, _cb: any) => {
+        /* no-op */
+      },
     },
   } as any;
 }
@@ -39,14 +43,17 @@ describe('TenantAwarePool prioritization', () => {
     // start 50 Tier 3 expensive requests -> should be queued
     const tier3Promises = Array.from({ length: 50 }).map(() =>
       // intentionally do not await these in full — they represent long-running/queued work
-      tap.getConnection({ tenantId: 't3', tier: 3 }, { expensive: true }).then(c => {
-        c.release();
-        return true;
-      }).catch(() => false),
+      tap
+        .getConnection({ tenantId: 't3', tier: 3 }, { expensive: true })
+        .then((c) => {
+          c.release();
+          return true;
+        })
+        .catch(() => false),
     );
 
     // small pause
-    await new Promise(r => setTimeout(r, 10));
+    await new Promise((r) => setTimeout(r, 10));
 
     // start 10 Tier 1 requests; these should complete quickly
     const t1Starts = Date.now();
@@ -64,7 +71,9 @@ describe('TenantAwarePool prioritization', () => {
 
     // We don't await all tier3 promises here because they may remain queued.
     // Check that at least one tier3 request has not immediately succeeded.
-    const settled = await Promise.all(tier3Promises.map(p => Promise.race([p, Promise.resolve('PENDING')])));
+    const settled = await Promise.all(
+      tier3Promises.map((p) => Promise.race([p, Promise.resolve('PENDING')])),
+    );
     expect(settled.includes(true)).toBe(false);
   });
 });

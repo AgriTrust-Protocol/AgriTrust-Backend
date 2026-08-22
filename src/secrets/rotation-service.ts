@@ -73,20 +73,38 @@ export class SecretRotationService {
       if (target.type === 'database') {
         const username = String(response.data[target.usernameField ?? 'username'] ?? '');
         const password = String(response.data[target.passwordField ?? 'password'] ?? '');
-        if (!username || !password) throw new Error(`Vault response for ${target.name} is missing database credentials`);
+        if (!username || !password)
+          throw new Error(`Vault response for ${target.name} is missing database credentials`);
         this.pgPoolFactory?.create(username, password);
-        this.leaseManager.track(response.leaseId, response.leaseDuration, response.renewable ?? true);
+        this.leaseManager.track(
+          response.leaseId,
+          response.leaseDuration,
+          response.renewable ?? true,
+        );
       } else if (target.envKey) {
         const value = response.data[target.field ?? target.envKey];
-        if (value == null) throw new Error(`Vault response for ${target.name} is missing ${target.field ?? target.envKey}`);
+        if (value == null)
+          throw new Error(
+            `Vault response for ${target.name} is missing ${target.field ?? target.envKey}`,
+          );
         process.env[target.envKey] = String(value);
       }
 
       const durationMs = this.now() - start;
       this.recordSuccess(target, durationMs);
-      return { target: target.name, type: target.type, rotatedAt: new Date(this.now()).toISOString(), durationMs, leaseId: response.leaseId };
+      return {
+        target: target.name,
+        type: target.type,
+        rotatedAt: new Date(this.now()).toISOString(),
+        durationMs,
+        leaseId: response.leaseId,
+      };
     } catch (error) {
-      secretRotationAttemptsTotal.inc({ target: target.name, type: target.type, result: 'failure' });
+      secretRotationAttemptsTotal.inc({
+        target: target.name,
+        type: target.type,
+        result: 'failure',
+      });
       throw error;
     }
   }
@@ -101,7 +119,10 @@ export class SecretRotationService {
       try {
         await this.rotate(target);
       } catch (error) {
-        console.error(`[Vault] Secret rotation failed for ${target.name}:`, error instanceof Error ? error.message : error);
+        console.error(
+          `[Vault] Secret rotation failed for ${target.name}:`,
+          error instanceof Error ? error.message : error,
+        );
       } finally {
         this.schedule(target, target.intervalMs);
       }
@@ -114,8 +135,14 @@ export class SecretRotationService {
     const timestamp = this.now();
     this.lastSuccess.set(target.name, timestamp);
     secretRotationAttemptsTotal.inc({ target: target.name, type: target.type, result: 'success' });
-    secretRotationDurationSeconds.observe({ target: target.name, type: target.type }, durationMs / 1000);
-    secretRotationLastSuccessTimestamp.set({ target: target.name, type: target.type }, timestamp / 1000);
+    secretRotationDurationSeconds.observe(
+      { target: target.name, type: target.type },
+      durationMs / 1000,
+    );
+    secretRotationLastSuccessTimestamp.set(
+      { target: target.name, type: target.type },
+      timestamp / 1000,
+    );
     secretRotationStalenessSeconds.set({ target: target.name, type: target.type }, 0);
   }
 }

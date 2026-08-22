@@ -8,7 +8,8 @@ export interface TraceParent {
 }
 
 export class TraceContext {
-  private static readonly TRACEPARENT_REGEX = /^([0-9a-f]{2})-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$/;
+  private static readonly TRACEPARENT_REGEX =
+    /^([0-9a-f]{2})-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$/;
 
   static generateTraceId(): string {
     return crypto.randomBytes(16).toString('hex');

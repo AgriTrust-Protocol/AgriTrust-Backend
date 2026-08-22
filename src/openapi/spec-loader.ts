@@ -67,8 +67,15 @@ function routePatternToRegex(pattern: string): RegExp {
   return new RegExp(`^${escaped}$`);
 }
 
-function buildParametersSchema(parameters: OpenAPIV3.ParameterObject[] = []): OpenAPIV3.SchemaObject | undefined {
-  const locations: Record<string, { type: 'object'; properties: Record<string, unknown>; required: string[]; } & { additionalProperties?: boolean }> = {
+function buildParametersSchema(
+  parameters: OpenAPIV3.ParameterObject[] = [],
+): OpenAPIV3.SchemaObject | undefined {
+  const locations: Record<
+    string,
+    { type: 'object'; properties: Record<string, unknown>; required: string[] } & {
+      additionalProperties?: boolean;
+    }
+  > = {
     path: { type: 'object', properties: {}, required: [] },
     query: { type: 'object', properties: {}, required: [], additionalProperties: true },
     header: { type: 'object', properties: {}, required: [], additionalProperties: true },
@@ -121,30 +128,48 @@ function buildParametersSchema(parameters: OpenAPIV3.ParameterObject[] = []): Op
   return container;
 }
 
-function extractJsonSchemaFromRequestBody(requestBody?: OpenAPIV3.RequestBodyObject): OpenAPIV3.SchemaObject | undefined {
+function extractJsonSchemaFromRequestBody(
+  requestBody?: OpenAPIV3.RequestBodyObject,
+): OpenAPIV3.SchemaObject | undefined {
   if (!requestBody || !requestBody.content) {
     return undefined;
   }
 
-  const bodyContent = requestBody.content['application/json'] ?? requestBody.content['*/*'] ?? Object.values(requestBody.content)[0];
+  const bodyContent =
+    requestBody.content['application/json'] ??
+    requestBody.content['*/*'] ??
+    Object.values(requestBody.content)[0];
   return (bodyContent as OpenAPIV3.MediaTypeObject)?.schema as OpenAPIV3.SchemaObject | undefined;
 }
 
-function extractJsonSchemaFromResponse(response: OpenAPIV3.ResponseObject): OpenAPIV3.SchemaObject | undefined {
+function extractJsonSchemaFromResponse(
+  response: OpenAPIV3.ResponseObject,
+): OpenAPIV3.SchemaObject | undefined {
   if (!response.content) {
     return undefined;
   }
-  const bodyContent = response.content['application/json'] ?? response.content['*/*'] ?? Object.values(response.content)[0];
+  const bodyContent =
+    response.content['application/json'] ??
+    response.content['*/*'] ??
+    Object.values(response.content)[0];
   return (bodyContent as OpenAPIV3.MediaTypeObject)?.schema as OpenAPIV3.SchemaObject | undefined;
 }
 
-function buildRequestValidator(operation: OpenAPIV3.OperationObject, pathParameters: (OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject)[]): ValidateFunction | undefined {
-  const parameters = [...(pathParameters as OpenAPIV3.ParameterObject[]), ...(operation.parameters as OpenAPIV3.ParameterObject[] ?? [])].filter(
+function buildRequestValidator(
+  operation: OpenAPIV3.OperationObject,
+  pathParameters: (OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject)[],
+): ValidateFunction | undefined {
+  const parameters = [
+    ...(pathParameters as OpenAPIV3.ParameterObject[]),
+    ...((operation.parameters as OpenAPIV3.ParameterObject[]) ?? []),
+  ].filter(
     (param) => !!param && (param as OpenAPIV3.ParameterObject).in,
   ) as OpenAPIV3.ParameterObject[];
 
   const parameterSchema = buildParametersSchema(parameters);
-  const bodySchema = extractJsonSchemaFromRequestBody(operation.requestBody as OpenAPIV3.RequestBodyObject);
+  const bodySchema = extractJsonSchemaFromRequestBody(
+    operation.requestBody as OpenAPIV3.RequestBodyObject,
+  );
   const schema: any = {
     type: 'object',
     properties: {},
@@ -175,7 +200,9 @@ function buildRequestValidator(operation: OpenAPIV3.OperationObject, pathParamet
   return compileSchema(schema);
 }
 
-function buildResponseValidators(operation: OpenAPIV3.OperationObject): Map<string, ValidateFunction> {
+function buildResponseValidators(
+  operation: OpenAPIV3.OperationObject,
+): Map<string, ValidateFunction> {
   const validators = new Map<string, ValidateFunction>();
 
   if (!operation.responses) {
@@ -240,7 +267,7 @@ async function initializeOpenApi(): Promise<void> {
       }
 
       const normalizedPath = normalizeRouterPath(openApiPath);
-      const pathParameters = pathItem.parameters as OpenAPIV3.ParameterObject[] ?? [];
+      const pathParameters = (pathItem.parameters as OpenAPIV3.ParameterObject[]) ?? [];
 
       for (const method of supportedMethods) {
         const operation = (pathItem as any)[method] as OpenAPIV3.OperationObject | undefined;
@@ -248,7 +275,8 @@ async function initializeOpenApi(): Promise<void> {
           continue;
         }
 
-        const customRouterPath = (operation as any)['x-router-path'] ?? (pathItem as any)['x-router-path'];
+        const customRouterPath =
+          (operation as any)['x-router-path'] ?? (pathItem as any)['x-router-path'];
         const routerPath = typeof customRouterPath === 'string' ? customRouterPath : normalizedPath;
         const requestValidator = buildRequestValidator(operation, pathParameters);
         const responseValidators = buildResponseValidators(operation);
@@ -267,7 +295,7 @@ async function initializeOpenApi(): Promise<void> {
   initialized = true;
 }
 
-export async function getMergedOpenApiDocument(version: string = 'v2'): Promise<OpenAPIV3.Document> {
+export async function getMergedOpenApiDocument(version = 'v2'): Promise<OpenAPIV3.Document> {
   if (!initialized) {
     await initializeOpenApi();
   }

@@ -6,12 +6,7 @@
  */
 
 /** Valid batch statuses in the lifecycle DAG. */
-export type BatchStatus =
-  | 'REGISTERED'
-  | 'INSPECTED'
-  | 'CERTIFIED'
-  | 'SHIPPED'
-  | 'DELIVERED';
+export type BatchStatus = 'REGISTERED' | 'INSPECTED' | 'CERTIFIED' | 'SHIPPED' | 'DELIVERED';
 
 /** A batch row as stored in PostgreSQL. */
 export interface BatchRow {

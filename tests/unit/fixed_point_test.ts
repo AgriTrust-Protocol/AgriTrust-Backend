@@ -71,17 +71,9 @@ function nonZeroLeadingString(min: number, max: number): fc.Arbitrary<string> {
  * Generate a decimal string with up to `maxInt` integer digits and
  * up to `maxFrac` fractional digits, optionally negative.
  */
-function decimalStringArb(
-  maxInt = 10,
-  maxFrac = 8,
-  allowNegative = true,
-): fc.Arbitrary<string> {
+function decimalStringArb(maxInt = 10, maxFrac = 8, allowNegative = true): fc.Arbitrary<string> {
   return fc
-    .tuple(
-      fc.boolean(),
-      nonZeroLeadingString(1, maxInt),
-      digitString(0, maxFrac),
-    )
+    .tuple(fc.boolean(), nonZeroLeadingString(1, maxInt), digitString(0, maxFrac))
     .map(([neg, intPart, fracPart]: [boolean, string, string]) => {
       const result = fracPart.length > 0 ? `${intPart}.${fracPart}` : intPart;
       return allowNegative && neg && result !== '0' ? `-${result}` : result;
@@ -93,10 +85,7 @@ function decimalStringArb(
  */
 function positiveDecimalArb(maxInt = 6, maxFrac = 6): fc.Arbitrary<string> {
   return fc
-    .tuple(
-      nonZeroLeadingString(1, maxInt),
-      digitString(0, maxFrac),
-    )
+    .tuple(nonZeroLeadingString(1, maxInt), digitString(0, maxFrac))
     .map(([intPart, fracPart]: [string, string]) => {
       return fracPart.length > 0 ? `${intPart}.${fracPart}` : intPart;
     });

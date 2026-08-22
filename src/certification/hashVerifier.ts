@@ -16,10 +16,7 @@ export interface VerificationResult {
  * This is intentionally read-only: it does not acquire locks because
  * it is called after all sources have finished ingestion.
  */
-export async function verifyBatchHash(
-  pool: Pool,
-  batchId: string,
-): Promise<VerificationResult> {
+export async function verifyBatchHash(pool: Pool, batchId: string): Promise<VerificationResult> {
   const [logResult, batchResult] = await Promise.all([
     pool.query<{ source_hash: string }>(
       `SELECT source_hash FROM batch_hash_log
@@ -34,9 +31,7 @@ export async function verifyBatchHash(
   ]);
 
   const hashes = logResult.rows.map((r) => r.source_hash);
-  const computedHash = createHash('sha256')
-    .update(hashes.join(''))
-    .digest('hex');
+  const computedHash = createHash('sha256').update(hashes.join('')).digest('hex');
 
   const storedHash = batchResult.rows[0]?.integrity_hash ?? null;
 
@@ -53,16 +48,10 @@ export async function verifyBatchHash(
  * Persist the computed aggregate hash back to batches.integrity_hash.
  * Called once, after all expected sources have submitted.
  */
-export async function finaliseIntegrityHash(
-  pool: Pool,
-  batchId: string,
-): Promise<string> {
+export async function finaliseIntegrityHash(pool: Pool, batchId: string): Promise<string> {
   const { computedHash } = await verifyBatchHash(pool, batchId);
 
-  await pool.query(
-    `UPDATE batches SET integrity_hash = $1 WHERE id = $2`,
-    [computedHash, batchId],
-  );
+  await pool.query(`UPDATE batches SET integrity_hash = $1 WHERE id = $2`, [computedHash, batchId]);
 
   return computedHash;
 }

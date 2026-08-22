@@ -24,7 +24,10 @@ function withEnv(env: Record<string, string>, fn: () => void): void {
 }
 
 function tmpFile(ext: string, content: string): string {
-  const p = path.join(os.tmpdir(), `config-test-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+  const p = path.join(
+    os.tmpdir(),
+    `config-test-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`,
+  );
   fs.writeFileSync(p, content, 'utf-8');
   return p;
 }
@@ -69,10 +72,7 @@ describe('ConfigLoader', () => {
     expect(cfg.redisUrl).toBe('redis://localhost:6379');
     expect(cfg.uvThreadpoolSize).toBe(4);
     expect(cfg.openapiEnforcementMode).toBe('strict');
-    expect(cfg.openapiSpecPaths).toEqual([
-      './src/openapi/v1.yaml',
-      './src/openapi/v2.yaml',
-    ]);
+    expect(cfg.openapiSpecPaths).toEqual(['./src/openapi/v1.yaml', './src/openapi/v2.yaml']);
     expect(cfg.databasePoolMin).toBe(2);
     expect(cfg.databasePoolMax).toBe(20);
     expect(cfg.redisPoolMin).toBe(2);
@@ -122,9 +122,7 @@ describe('ConfigLoader', () => {
   });
 
   it('throws when DATABASE_URL is missing', () => {
-    expect(() => loader.load({ env: { PORT: '3000' } })).toThrow(
-      'Configuration validation failed',
-    );
+    expect(() => loader.load({ env: { PORT: '3000' } })).toThrow('Configuration validation failed');
   });
 
   it('throws when MTLS is enabled but cert paths are missing', () => {
@@ -235,10 +233,7 @@ describe('ConfigLoader', () => {
         OPENAPI_SPEC_PATHS: '',
       },
     });
-    expect(cfg.openapiSpecPaths).toEqual([
-      './src/openapi/v1.yaml',
-      './src/openapi/v2.yaml',
-    ]);
+    expect(cfg.openapiSpecPaths).toEqual(['./src/openapi/v1.yaml', './src/openapi/v2.yaml']);
   });
 
   it('strips whitespace from parsed cert paths', () => {
@@ -261,9 +256,9 @@ describe('ConfigLoader', () => {
     loader.load({ env: { DATABASE_URL: 'postgres://localhost/db' } });
     loader.freeze();
     expect(loader.isFrozen).toBe(true);
-    expect(() =>
-      loader.load({ env: { DATABASE_URL: 'postgres://other/db' } }),
-    ).toThrow('ConfigLoader is frozen');
+    expect(() => loader.load({ env: { DATABASE_URL: 'postgres://other/db' } })).toThrow(
+      'ConfigLoader is frozen',
+    );
   });
 
   it('unfreezes config and allows reload', () => {
@@ -330,10 +325,10 @@ describe('ConfigLoader', () => {
   });
 
   it('does not throw when listener throws', () => {
-    loader.onChange(() => { throw new Error('listener error'); });
-    expect(() =>
-      loader.load({ env: { DATABASE_URL: 'postgres://localhost/db' } }),
-    ).not.toThrow();
+    loader.onChange(() => {
+      throw new Error('listener error');
+    });
+    expect(() => loader.load({ env: { DATABASE_URL: 'postgres://localhost/db' } })).not.toThrow();
   });
 });
 
@@ -349,12 +344,15 @@ describe('ConfigLoader - file loading', () => {
   });
 
   it('loads config from a JSON file', () => {
-    const jsonPath = tmpFile('.json', JSON.stringify({
-      port: 6000,
-      databaseUrl: 'postgres://json/db',
-      databasePoolMax: 30,
-      logLevel: 'debug',
-    }));
+    const jsonPath = tmpFile(
+      '.json',
+      JSON.stringify({
+        port: 6000,
+        databaseUrl: 'postgres://json/db',
+        databasePoolMax: 30,
+        logLevel: 'debug',
+      }),
+    );
     try {
       const cfg = loader.loadJsonFile(jsonPath);
       expect(cfg.port).toBe(6000);
@@ -362,17 +360,22 @@ describe('ConfigLoader - file loading', () => {
       expect(cfg.databasePoolMax).toBe(30);
       expect(cfg.logLevel).toBe('debug');
     } finally {
-      try { fs.unlinkSync(jsonPath); } catch {}
+      try {
+        fs.unlinkSync(jsonPath);
+      } catch {}
     }
   });
 
   it('loads config from a YAML file', () => {
-    const yamlPath = tmpFile('.yaml', [
-      'port: 7000',
-      'databaseUrl: postgres://yaml/db',
-      'logLevel: debug',
-      'metricsPrefix: test',
-    ].join('\n'));
+    const yamlPath = tmpFile(
+      '.yaml',
+      [
+        'port: 7000',
+        'databaseUrl: postgres://yaml/db',
+        'logLevel: debug',
+        'metricsPrefix: test',
+      ].join('\n'),
+    );
     try {
       const cfg = loader.loadYamlFile(yamlPath);
       expect(cfg.port).toBe(7000);
@@ -380,49 +383,60 @@ describe('ConfigLoader - file loading', () => {
       expect(cfg.logLevel).toBe('debug');
       expect(cfg.metricsPrefix).toBe('test');
     } finally {
-      try { fs.unlinkSync(yamlPath); } catch {}
+      try {
+        fs.unlinkSync(yamlPath);
+      } catch {}
     }
   });
 
   it('loads config from .json via loadConfigFile', () => {
-    const jsonPath = tmpFile('.json', JSON.stringify({
-      port: 8000,
-      databaseUrl: 'postgres://autodetect/db',
-    }));
+    const jsonPath = tmpFile(
+      '.json',
+      JSON.stringify({
+        port: 8000,
+        databaseUrl: 'postgres://autodetect/db',
+      }),
+    );
     try {
       const cfg = loader.loadConfigFile(jsonPath);
       expect(cfg.port).toBe(8000);
       expect(cfg.databaseUrl).toBe('postgres://autodetect/db');
     } finally {
-      try { fs.unlinkSync(jsonPath); } catch {}
+      try {
+        fs.unlinkSync(jsonPath);
+      } catch {}
     }
   });
 
   it('loads config from .yaml via loadConfigFile', () => {
-    const yamlPath = tmpFile('.yaml', [
-      'port: 9000',
-      'databaseUrl: postgres://yamldetect/db',
-    ].join('\n'));
+    const yamlPath = tmpFile(
+      '.yaml',
+      ['port: 9000', 'databaseUrl: postgres://yamldetect/db'].join('\n'),
+    );
     try {
       const cfg = loader.loadConfigFile(yamlPath);
       expect(cfg.port).toBe(9000);
       expect(cfg.databaseUrl).toBe('postgres://yamldetect/db');
     } finally {
-      try { fs.unlinkSync(yamlPath); } catch {}
+      try {
+        fs.unlinkSync(yamlPath);
+      } catch {}
     }
   });
 
   it('loads config from .yml via loadConfigFile', () => {
-    const ymlPath = tmpFile('.yml', [
-      'port: 9500',
-      'databaseUrl: postgres://ymldetect/db',
-    ].join('\n'));
+    const ymlPath = tmpFile(
+      '.yml',
+      ['port: 9500', 'databaseUrl: postgres://ymldetect/db'].join('\n'),
+    );
     try {
       const cfg = loader.loadConfigFile(ymlPath);
       expect(cfg.port).toBe(9500);
       expect(cfg.databaseUrl).toBe('postgres://ymldetect/db');
     } finally {
-      try { fs.unlinkSync(ymlPath); } catch {}
+      try {
+        fs.unlinkSync(ymlPath);
+      } catch {}
     }
   });
 
@@ -435,23 +449,32 @@ describe('ConfigLoader - file loading', () => {
   });
 
   it('reloads config from the last loaded file', () => {
-    const jsonPath = tmpFile('.json', JSON.stringify({
-      port: 7777,
-      databaseUrl: 'postgres://reload/db',
-    }));
+    const jsonPath = tmpFile(
+      '.json',
+      JSON.stringify({
+        port: 7777,
+        databaseUrl: 'postgres://reload/db',
+      }),
+    );
     try {
       loader.loadConfigFile(jsonPath);
       expect(loader.config.port).toBe(7777);
 
-      fs.writeFileSync(jsonPath, JSON.stringify({
-        port: 8888,
-        databaseUrl: 'postgres://reload/db',
-      }), 'utf-8');
+      fs.writeFileSync(
+        jsonPath,
+        JSON.stringify({
+          port: 8888,
+          databaseUrl: 'postgres://reload/db',
+        }),
+        'utf-8',
+      );
 
       const reloaded = loader.reload();
       expect(reloaded.port).toBe(8888);
     } finally {
-      try { fs.unlinkSync(jsonPath); } catch {}
+      try {
+        fs.unlinkSync(jsonPath);
+      } catch {}
     }
   });
 
@@ -490,15 +513,14 @@ describe('ConfigLoader - dotenv loading', () => {
         expect(cfg.uvThreadpoolSize).toBe(16);
       });
     } finally {
-      try { fs.unlinkSync(envPath); } catch {}
+      try {
+        fs.unlinkSync(envPath);
+      } catch {}
     }
   });
 
   it('prefers process.env over .env file values', () => {
-    const envContent = [
-      'PORT=5000',
-      'DATABASE_URL=postgres://fromfile/db',
-    ].join('\n');
+    const envContent = ['PORT=5000', 'DATABASE_URL=postgres://fromfile/db'].join('\n');
 
     const envPath = path.resolve(__dirname, './test-config-prefers.env');
     fs.writeFileSync(envPath, envContent, 'utf-8');
@@ -509,7 +531,9 @@ describe('ConfigLoader - dotenv loading', () => {
         expect(cfg.port).toBe(5000);
       });
     } finally {
-      try { fs.unlinkSync(envPath); } catch {}
+      try {
+        fs.unlinkSync(envPath);
+      } catch {}
     }
   });
 
@@ -522,21 +546,18 @@ describe('ConfigLoader - dotenv loading', () => {
   });
 
   it('validates mTLS paths when loaded via dotenv', () => {
-    const envContent = [
-      'DATABASE_URL=postgres://localhost/db',
-      'MTLS_ENABLED=true',
-    ].join('\n');
+    const envContent = ['DATABASE_URL=postgres://localhost/db', 'MTLS_ENABLED=true'].join('\n');
 
     const envPath = path.resolve(__dirname, './test-config-mtls.env');
     fs.writeFileSync(envPath, envContent, 'utf-8');
     try {
       withEnv({ DATABASE_URL: 'postgres://localhost/db', MTLS_ENABLED: 'true' }, () => {
-        expect(() => loader.loadDotEnv(envPath)).toThrow(
-          'Configuration validation failed',
-        );
+        expect(() => loader.loadDotEnv(envPath)).toThrow('Configuration validation failed');
       });
     } finally {
-      try { fs.unlinkSync(envPath); } catch {}
+      try {
+        fs.unlinkSync(envPath);
+      } catch {}
     }
   });
 });

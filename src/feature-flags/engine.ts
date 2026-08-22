@@ -18,34 +18,34 @@ import { metricsRegistry } from '../api/metrics/registry';
 // ─── Types ────────────────────────────────────────────────────────────────
 
 export type TargetingAttribute = 'tenantId' | 'region' | 'agentRole' | 'bucket';
-export type TargetingOperator  = 'eq' | 'in' | 'lt' | 'lte' | 'gt' | 'gte';
+export type TargetingOperator = 'eq' | 'in' | 'lt' | 'lte' | 'gt' | 'gte';
 
 export interface TargetingRule {
   attribute: TargetingAttribute;
-  operator:  TargetingOperator;
-  value:     string | string[] | number;
+  operator: TargetingOperator;
+  value: string | string[] | number;
 }
 
 export interface FlagDefinition {
-  key:               string;
-  enabled:           boolean;
-  rolloutPercentage: number;          // 0 – 100 integer
-  targetingRules:    TargetingRule[];
-  payload:           Record<string, unknown>;
-  variants:          string[];
+  key: string;
+  enabled: boolean;
+  rolloutPercentage: number; // 0 – 100 integer
+  targetingRules: TargetingRule[];
+  payload: Record<string, unknown>;
+  variants: string[];
 }
 
 export interface EvaluationContext {
-  tenantId:  string;
-  region?:   string;
+  tenantId: string;
+  region?: string;
   agentRole?: string;
   /** Pre-computed 0-99 sample bucket; defaults to hash(tenantId) % 100 */
-  bucket?:   number;
+  bucket?: number;
 }
 
 export interface EvaluationResult {
   enabled: boolean;
-  reason:  'kill-switch' | 'targeting' | 'rollout' | 'default-off';
+  reason: 'kill-switch' | 'targeting' | 'rollout' | 'default-off';
   variant?: string;
   payload: Record<string, unknown>;
 }
@@ -53,16 +53,16 @@ export interface EvaluationResult {
 // ─── Metrics ─────────────────────────────────────────────────────────────
 
 const evaluationDuration = new Histogram({
-  name:    'feature_flag_evaluation_duration_ns',
-  help:    'Feature flag evaluation duration in nanoseconds (nanosecond resolution via process.hrtime)',
+  name: 'feature_flag_evaluation_duration_ns',
+  help: 'Feature flag evaluation duration in nanoseconds (nanosecond resolution via process.hrtime)',
   labelNames: ['flag', 'result'] as const,
   buckets: [100, 500, 1_000, 5_000, 10_000, 50_000],
   registers: [metricsRegistry],
 });
 
 const evaluationTotal = new Counter({
-  name:    'feature_flag_evaluations_total',
-  help:    'Total feature flag evaluations',
+  name: 'feature_flag_evaluations_total',
+  help: 'Total feature flag evaluations',
   labelNames: ['flag', 'result'] as const,
   registers: [metricsRegistry],
 });
@@ -109,7 +109,10 @@ export class FeatureEngine {
     const result = this._evaluate(key, ctx);
 
     const elapsedNs = Number(process.hrtime.bigint() - start);
-    evaluationDuration.observe({ flag: key, result: result.enabled ? 'enabled' : 'disabled' }, elapsedNs);
+    evaluationDuration.observe(
+      { flag: key, result: result.enabled ? 'enabled' : 'disabled' },
+      elapsedNs,
+    );
     evaluationTotal.inc({ flag: key, result: result.enabled ? 'enabled' : 'disabled' });
 
     return result;
@@ -133,7 +136,7 @@ export class FeatureEngine {
         const variant = flag.variants[0];
         return {
           enabled: true,
-          reason:  'targeting',
+          reason: 'targeting',
           variant,
           payload: flag.payload,
         };
@@ -147,7 +150,7 @@ export class FeatureEngine {
       const variant = flag.variants[variantIndex];
       return {
         enabled: true,
-        reason:  'rollout',
+        reason: 'rollout',
         variant,
         payload: flag.payload,
       };
@@ -172,26 +175,37 @@ export function tenantBucket(tenantId: string): number {
 function matchesRule(ctx: EvaluationContext, rule: TargetingRule): boolean {
   const raw: string | number | undefined = (() => {
     switch (rule.attribute) {
-      case 'tenantId':  return ctx.tenantId;
-      case 'region':    return ctx.region;
-      case 'agentRole': return ctx.agentRole;
-      case 'bucket':    return ctx.bucket ?? tenantBucket(ctx.tenantId);
-      default:          return undefined;
+      case 'tenantId':
+        return ctx.tenantId;
+      case 'region':
+        return ctx.region;
+      case 'agentRole':
+        return ctx.agentRole;
+      case 'bucket':
+        return ctx.bucket ?? tenantBucket(ctx.tenantId);
+      default:
+        return undefined;
     }
   })();
 
   if (raw === undefined) return false;
 
   switch (rule.operator) {
-    case 'eq':  return String(raw) === String(rule.value);
+    case 'eq':
+      return String(raw) === String(rule.value);
     case 'in': {
       const arr = Array.isArray(rule.value) ? rule.value : [String(rule.value)];
       return arr.includes(String(raw));
     }
-    case 'lt':  return Number(raw) <  Number(rule.value);
-    case 'lte': return Number(raw) <= Number(rule.value);
-    case 'gt':  return Number(raw) >  Number(rule.value);
-    case 'gte': return Number(raw) >= Number(rule.value);
-    default:    return false;
+    case 'lt':
+      return Number(raw) < Number(rule.value);
+    case 'lte':
+      return Number(raw) <= Number(rule.value);
+    case 'gt':
+      return Number(raw) > Number(rule.value);
+    case 'gte':
+      return Number(raw) >= Number(rule.value);
+    default:
+      return false;
   }
 }

@@ -4,11 +4,14 @@ import { ParcelService, parseBBox } from './parcelService';
 function parsePagination(req: Request): { limit: number; offset: number } {
   const limit = Math.min(Math.max(Number(req.query.limit ?? 100), 1), 500);
   const offset = Math.max(Number(req.query.offset ?? 0), 0);
-  if (!Number.isFinite(limit) || !Number.isFinite(offset)) throw new Error('limit and offset must be numbers');
+  if (!Number.isFinite(limit) || !Number.isFinite(offset))
+    throw new Error('limit and offset must be numbers');
   return { limit, offset };
 }
 
-function toFeatureCollection(features: Awaited<ReturnType<ParcelService['queryParcels']>>['features']) {
+function toFeatureCollection(
+  features: Awaited<ReturnType<ParcelService['queryParcels']>>['features'],
+) {
   return {
     type: 'FeatureCollection',
     features: features.map((parcel) => ({
@@ -35,14 +38,24 @@ export function createParcelRouter(parcelService: ParcelService): Router {
       const bbox = typeof req.query.bbox === 'string' ? parseBBox(req.query.bbox) : undefined;
       const lng = req.query.lng === undefined ? undefined : Number(req.query.lng);
       const lat = req.query.lat === undefined ? undefined : Number(req.query.lat);
-      const distanceMeters = req.query.distance_meters === undefined ? undefined : Number(req.query.distance_meters);
-      const result = await parcelService.queryParcels({ bbox, lng, lat, distanceMeters, limit, offset });
-      res.json({ ...toFeatureCollection(result.features), pagination: { limit: result.limit, offset: result.offset } });
+      const distanceMeters =
+        req.query.distance_meters === undefined ? undefined : Number(req.query.distance_meters);
+      const result = await parcelService.queryParcels({
+        bbox,
+        lng,
+        lat,
+        distanceMeters,
+        limit,
+        offset,
+      });
+      res.json({
+        ...toFeatureCollection(result.features),
+        pagination: { limit: result.limit, offset: result.offset },
+      });
     } catch (err) {
       res.status(400).json({ error: err instanceof Error ? err.message : 'Invalid parcel query' });
     }
   });
-
 
   router.get('/:id/buffer', async (req: Request, res: Response) => {
     try {
@@ -56,7 +69,12 @@ export function createParcelRouter(parcelService: ParcelService): Router {
         res.status(404).json({ error: 'Parcel not found' });
         return;
       }
-      res.json({ type: 'Feature', id: req.params.id, properties: { bufferDistanceMeters: distanceMeters }, geometry });
+      res.json({
+        type: 'Feature',
+        id: req.params.id,
+        properties: { bufferDistanceMeters: distanceMeters },
+        geometry,
+      });
     } catch (err) {
       res.status(500).json({ error: 'Failed to buffer parcel geometry' });
     }

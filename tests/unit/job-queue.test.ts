@@ -22,9 +22,7 @@ describe('JobRegistry', () => {
   });
 
   it('throws on unknown job type', () => {
-    expect(() => registry.register('nonexistent', async () => {})).toThrow(
-      'Unknown job type',
-    );
+    expect(() => registry.register('nonexistent', async () => {})).toThrow('Unknown job type');
   });
 
   it('lists all registered types', () => {
@@ -132,9 +130,7 @@ describe('WorkerPool', () => {
     };
 
     const p1 = pool.dispatch(job, def);
-    await expect(
-      pool.dispatch({ ...job, id: 'j2' }, def),
-    ).rejects.toThrow('Max concurrency');
+    await expect(pool.dispatch({ ...job, id: 'j2' }, def)).rejects.toThrow('Max concurrency');
   });
 
   it('times out a long-running job and handles internally', async () => {

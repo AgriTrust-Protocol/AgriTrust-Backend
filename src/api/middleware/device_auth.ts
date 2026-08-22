@@ -33,10 +33,7 @@ export interface DeviceContext {
  * If the payload is shorter than 38 bytes or the deviceId field is all spaces,
  * deviceId is treated as null and the caller should fall back to IP-based limiting.
  */
-export function extractDeviceContext(
-  payload: Buffer,
-  fallbackId: string,
-): DeviceContext {
+export function extractDeviceContext(payload: Buffer, fallbackId: string): DeviceContext {
   const ctx: DeviceContext = {
     deviceId: null,
     fallbackId,

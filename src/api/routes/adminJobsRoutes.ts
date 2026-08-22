@@ -51,7 +51,9 @@ export function createAdminJobsRouter(
   router.get('/jobs/dead-letter', async (req: Request, res: Response) => {
     try {
       const rawLimit = Number(req.query.limit ?? DEFAULT_DLQ_LIST_LIMIT);
-      const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 500) : DEFAULT_DLQ_LIST_LIMIT;
+      const limit = Number.isFinite(rawLimit)
+        ? Math.min(Math.max(rawLimit, 1), 500)
+        : DEFAULT_DLQ_LIST_LIMIT;
       const jobs = await persistence.listDeadLetters(limit);
       const totalDepth = await persistence.deadLetterDepth();
       res.status(200).json({ jobs, totalDepth, limit });

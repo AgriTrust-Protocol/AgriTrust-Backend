@@ -66,10 +66,11 @@ export async function processTwoPhaseDeposit(
 
     // Apply tentative state
     if (balanceRows.length === 0) {
-      await pool.query(
-        `INSERT INTO silo_bins (silo_id, bin_id, balance) VALUES ($1, $2, $3)`,
-        [params.siloId, params.binId, newBalance],
-      );
+      await pool.query(`INSERT INTO silo_bins (silo_id, bin_id, balance) VALUES ($1, $2, $3)`, [
+        params.siloId,
+        params.binId,
+        newBalance,
+      ]);
     } else {
       await pool.query(
         `UPDATE silo_bins SET balance = $3, updated_at = NOW() WHERE silo_id = $1 AND bin_id = $2`,

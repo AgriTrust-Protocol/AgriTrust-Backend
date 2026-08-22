@@ -1,4 +1,4 @@
-const http = require("http");
+const http = require('http');
 
 let nextId = 0;
 
@@ -26,7 +26,7 @@ class MockSensor {
     while (this.active) {
       const interval = randomBetween(
         this.config.telemetryIntervalMs.min,
-        this.config.telemetryIntervalMs.max
+        this.config.telemetryIntervalMs.max,
       );
       await this.sleep(interval);
 
@@ -54,10 +54,7 @@ class MockSensor {
 
   sendTelemetry() {
     return new Promise((resolve) => {
-      const jitter = randomBetween(
-        this.config.jitterMs.min,
-        this.config.jitterMs.max
-      );
+      const jitter = randomBetween(this.config.jitterMs.min, this.config.jitterMs.max);
 
       const shouldDelay = shouldTrigger(this.config.outOfOrderProbability);
       const actualDelay = shouldDelay ? jitter + 5000 : jitter;
@@ -67,18 +64,18 @@ class MockSensor {
         const req = http.get(
           `http://${this.config.target.host}:${this.config.target.port}${this.config.target.endpoint}`,
           (res) => {
-            let body = "";
-            res.on("data", (chunk) => (body += chunk));
-            res.on("end", () => {
+            let body = '';
+            res.on('data', (chunk) => (body += chunk));
+            res.on('end', () => {
               const latency = Date.now() - start;
               this.stats.recordLatency(latency);
               this.stats.messagesReceived++;
               this.requestCount++;
               resolve();
             });
-          }
+          },
         );
-        req.on("error", () => {
+        req.on('error', () => {
           this.stats.errors++;
           resolve();
         });
@@ -94,7 +91,7 @@ class MockSensor {
       this.stats.dropouts++;
       const delay = randomBetween(
         this.config.reconnectDelayMs.min,
-        this.config.reconnectDelayMs.max
+        this.config.reconnectDelayMs.max,
       );
       const timer = setTimeout(async () => {
         this.stats.reconnections++;

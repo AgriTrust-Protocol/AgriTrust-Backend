@@ -8,10 +8,7 @@ import { SagaLogStore } from '../../database/saga_log';
  * GET  /admin/sagas/:id        — inspect a saga's status and full step log
  * POST /admin/sagas/:id/retry  — manually retry a failed saga
  */
-export function createSagaRouter(
-  coordinator: SagaCoordinator,
-  logStore: SagaLogStore,
-): Router {
+export function createSagaRouter(coordinator: SagaCoordinator, logStore: SagaLogStore): Router {
   const router = Router();
 
   router.get('/:id', async (req: Request, res: Response) => {
@@ -34,9 +31,11 @@ export function createSagaRouter(
     try {
       const view = await logStore.getSaga(sagaId);
       const originalParams = (view.execution as any)?.payload;
-      
+
       if (originalParams && originalParams.variantName) {
-        console.log(`[Canary Tracker] Retrying saga ${sagaId} under original experiment variant context: ${originalParams.variantName}`);
+        console.log(
+          `[Canary Tracker] Retrying saga ${sagaId} under original experiment variant context: ${originalParams.variantName}`,
+        );
       }
 
       const result = await coordinator.retry(sagaId);

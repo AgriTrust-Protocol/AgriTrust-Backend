@@ -17,15 +17,27 @@ const config = {
   staticCacheTtlMs: 300000,
   mappings: [
     { envKey: 'API_KEY', path: 'secret/data/api', field: 'apiKey', engine: 'kv-v2' as const },
-    { envKey: 'PGUSER', path: 'database/creds/app', field: 'username', engine: 'database' as const },
+    {
+      envKey: 'PGUSER',
+      path: 'database/creds/app',
+      field: 'username',
+      engine: 'database' as const,
+    },
   ],
 };
 
 describe('SecretInjector', () => {
   it('injects mapped values and tracks dynamic leases', async () => {
-    const read = vi.fn(async (path: string) => path.includes('database')
-      ? { data: { username: 'vault-user' }, leaseId: 'lease-db', leaseDuration: 86400, renewable: true }
-      : { data: { apiKey: 'static-key' } });
+    const read = vi.fn(async (path: string) =>
+      path.includes('database')
+        ? {
+            data: { username: 'vault-user' },
+            leaseId: 'lease-db',
+            leaseDuration: 86400,
+            renewable: true,
+          }
+        : { data: { apiKey: 'static-key' } },
+    );
     const vaultClient = { read } as any;
     const leaseManager = new LeaseManager(async () => ({ ttlSeconds: 86400, renewable: true }));
     const track = vi.spyOn(leaseManager, 'track');

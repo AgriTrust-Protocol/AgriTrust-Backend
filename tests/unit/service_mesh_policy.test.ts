@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { createServiceMeshPolicy, getServiceMeshPolicyFromEnv, serviceMeshReadiness } from '../../src/service-mesh/mtls-policy';
+import {
+  createServiceMeshPolicy,
+  getServiceMeshPolicyFromEnv,
+  serviceMeshReadiness,
+} from '../../src/service-mesh/mtls-policy';
 
 describe('service mesh mTLS policy', () => {
   it('defaults to strict mTLS with 100ms p99 and 99.99 availability guardrails', () => {

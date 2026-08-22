@@ -18,11 +18,11 @@ export function createBatchRouter(mintService: MintService): Router {
       if (result.success) {
         res.status(200).json({
           message: 'Certificate minted successfully',
-          certificate_id: result.certificateId
+          certificate_id: result.certificateId,
         });
       } else {
         res.status(409).json({
-          error: result.error || 'Minting failed or already in progress'
+          error: result.error || 'Minting failed or already in progress',
         });
       }
     } catch (err) {

@@ -63,11 +63,7 @@ export class TxBuilder {
     const optimized = TxBuilder.applySafetyMargin(resources);
 
     const sorobanData = new SorobanDataBuilder()
-      .setResources(
-        optimized.instructions,
-        optimized.readBytes,
-        optimized.writeBytes,
-      )
+      .setResources(optimized.instructions, optimized.readBytes, optimized.writeBytes)
       .setResourceFee(minResourceFee)
       .setReadOnly(footprintRead)
       .setReadWrite(footprintWrite)
@@ -104,7 +100,10 @@ export class TxBuilder {
       readBytes: clamp(resources.readBytes, SOROBAN_NETWORK_MAX.readBytes),
       writeBytes: clamp(resources.writeBytes, SOROBAN_NETWORK_MAX.writeBytes),
       ledgerEntriesRead: clamp(resources.ledgerEntriesRead, SOROBAN_NETWORK_MAX.ledgerEntriesRead),
-      ledgerEntriesWritten: clamp(resources.ledgerEntriesWritten, SOROBAN_NETWORK_MAX.ledgerEntriesWritten),
+      ledgerEntriesWritten: clamp(
+        resources.ledgerEntriesWritten,
+        SOROBAN_NETWORK_MAX.ledgerEntriesWritten,
+      ),
     };
   }
 }

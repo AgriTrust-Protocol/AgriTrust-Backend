@@ -23,7 +23,10 @@ export class SecretInjector {
     try {
       await this.injectMappings(this.config.mappings, false);
     } catch (error) {
-      console.warn('[Vault] Startup injection failed; attempting .env.vault fallback:', error instanceof Error ? error.message : error);
+      console.warn(
+        '[Vault] Startup injection failed; attempting .env.vault fallback:',
+        error instanceof Error ? error.message : error,
+      );
       if (!this.injectLastKnownGoodEnv()) throw error;
     }
   }
@@ -51,7 +54,11 @@ export class SecretInjector {
           expiresAt: Date.now() + (mapping.cacheTtlMs ?? this.config.staticCacheTtlMs),
         });
       } else {
-        this.leaseManager.track(response.leaseId, response.leaseDuration, response.renewable ?? true);
+        this.leaseManager.track(
+          response.leaseId,
+          response.leaseDuration,
+          response.renewable ?? true,
+        );
       }
     }
   }
@@ -61,13 +68,20 @@ export class SecretInjector {
     const decrypted = this.decryptBackup();
     const parsed = parse(decrypted);
     for (const [key, value] of Object.entries(parsed)) process.env[key] = value;
-    console.warn('[Vault] Using last-known-good .env.vault fallback; rotate credentials as soon as Vault is reachable.');
+    console.warn(
+      '[Vault] Using last-known-good .env.vault fallback; rotate credentials as soon as Vault is reachable.',
+    );
     return true;
   }
 
   private decryptBackup(): Buffer {
     if (this.config.ageIdentityPath) {
-      return execFileSync('age', ['--decrypt', '--identity', this.config.ageIdentityPath, this.config.encryptedBackupPath]);
+      return execFileSync('age', [
+        '--decrypt',
+        '--identity',
+        this.config.ageIdentityPath,
+        this.config.encryptedBackupPath,
+      ]);
     }
     return readFileSync(this.config.encryptedBackupPath);
   }

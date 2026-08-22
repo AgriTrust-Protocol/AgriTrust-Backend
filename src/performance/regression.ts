@@ -32,7 +32,9 @@ export function evaluatePerformanceSample(
   const violations: string[] = [];
 
   if (sample.sampleCount < budget.minSampleCount) {
-    violations.push(`${sample.route} collected ${sample.sampleCount} samples; requires ${budget.minSampleCount}`);
+    violations.push(
+      `${sample.route} collected ${sample.sampleCount} samples; requires ${budget.minSampleCount}`,
+    );
   }
 
   if (sample.p99Ms > budget.maxP99Ms) {
@@ -40,11 +42,15 @@ export function evaluatePerformanceSample(
   }
 
   if (sample.availability < budget.minAvailability) {
-    violations.push(`${sample.route} availability ${sample.availability} is below ${budget.minAvailability}`);
+    violations.push(
+      `${sample.route} availability ${sample.availability} is below ${budget.minAvailability}`,
+    );
   }
 
   if (sample.errorRate > budget.maxErrorRate) {
-    violations.push(`${sample.route} error rate ${sample.errorRate} exceeds ${budget.maxErrorRate}`);
+    violations.push(
+      `${sample.route} error rate ${sample.errorRate} exceeds ${budget.maxErrorRate}`,
+    );
   }
 
   return { passed: violations.length === 0, violations };

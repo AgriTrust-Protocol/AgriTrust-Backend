@@ -25,7 +25,11 @@ describe('RuntimeConfigAuditor', () => {
       service: 'api',
       criticalKeys: ['NODE_ENV'],
       clock: () => new Date('2026-07-18T00:00:00.000Z'),
-      snapshot: () => ({ NODE_ENV: 'production', TRACING_SAMPLING_PROBABILITY: tracingProbability, DB_PASSWORD: 'secret' }),
+      snapshot: () => ({
+        NODE_ENV: 'production',
+        TRACING_SAMPLING_PROBABILITY: tracingProbability,
+        DB_PASSWORD: 'secret',
+      }),
     });
 
     auditor.establishBaseline();
@@ -33,7 +37,9 @@ describe('RuntimeConfigAuditor', () => {
     const result = auditor.audit();
 
     expect(result).toMatchObject({ service: 'api', checkedAt: '2026-07-18T00:00:00.000Z' });
-    expect(result.drift).toEqual([expect.objectContaining({ key: 'TRACING_SAMPLING_PROBABILITY', severity: 'warning' })]);
+    expect(result.drift).toEqual([
+      expect.objectContaining({ key: 'TRACING_SAMPLING_PROBABILITY', severity: 'warning' }),
+    ]);
     expect(JSON.stringify(result)).not.toContain('secret');
     expect(result.durationMs).toBeLessThan(100);
   });

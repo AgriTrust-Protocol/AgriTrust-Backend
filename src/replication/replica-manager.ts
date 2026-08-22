@@ -3,7 +3,13 @@ import { RegionReplicaConfig, ReplicationConfig } from '../config/replication';
 import { maxLsn } from './delta-sync';
 import { replicationLagSeconds } from './metrics';
 
-export type ReplicaHealth = { regionId: string; reachable: boolean; lastLsn: string; lagMs: number; checkedAt: Date };
+export type ReplicaHealth = {
+  regionId: string;
+  reachable: boolean;
+  lastLsn: string;
+  lagMs: number;
+  checkedAt: Date;
+};
 
 export interface HealthProbe {
   check(replica: RegionReplicaConfig): Promise<ReplicaHealth>;
@@ -15,32 +21,51 @@ export class ReplicaManager extends EventEmitter {
   private activeUnreachableSince?: number;
   private health = new Map<string, ReplicaHealth>();
 
-  constructor(private readonly config: ReplicationConfig, private readonly probe: HealthProbe) { super(); }
+  constructor(
+    private readonly config: ReplicationConfig,
+    private readonly probe: HealthProbe,
+  ) {
+    super();
+  }
 
   start(): void {
     this.timer = setInterval(() => void this.checkOnce(), this.config.healthCheckIntervalMs);
     void this.checkOnce();
   }
 
-  stop(): void { if (this.timer) clearInterval(this.timer); }
+  stop(): void {
+    if (this.timer) clearInterval(this.timer);
+  }
 
   async checkOnce(): Promise<void> {
-    const results = await Promise.all(this.config.replicas.map((replica) => this.probe.check(replica)));
+    const results = await Promise.all(
+      this.config.replicas.map((replica) => this.probe.check(replica)),
+    );
     for (const result of results) {
       this.health.set(result.regionId, result);
       const source = this.config.activeRegionId;
-      if (result.regionId !== source) replicationLagSeconds.set({ source_region: source, target_region: result.regionId }, result.lagMs / 1000);
+      if (result.regionId !== source)
+        replicationLagSeconds.set(
+          { source_region: source, target_region: result.regionId },
+          result.lagMs / 1000,
+        );
     }
     await this.maybeFailover();
   }
 
-  getHealth(): ReplicaHealth[] { return [...this.health.values()]; }
+  getHealth(): ReplicaHealth[] {
+    return [...this.health.values()];
+  }
 
   private async maybeFailover(): Promise<void> {
     const active = this.health.get(this.config.activeRegionId);
-    if (active?.reachable) { this.activeUnreachableSince = undefined; return; }
+    if (active?.reachable) {
+      this.activeUnreachableSince = undefined;
+      return;
+    }
     this.activeUnreachableSince ??= Date.now();
-    if (Date.now() - this.activeUnreachableSince < this.config.activeUnreachablePromoteAfterMs) return;
+    if (Date.now() - this.activeUnreachableSince < this.config.activeUnreachablePromoteAfterMs)
+      return;
 
     const candidate = this.bestReplica();
     if (!candidate) return;

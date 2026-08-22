@@ -28,17 +28,21 @@ vi.mock('pg', async () => {
       this.totalCount = poolState.totalCount;
       this.idleCount = poolState.idleCount;
       this.waitingCount = poolState.waitingCount;
-      if (poolState.connectLatencyMs > 0) await new Promise(resolve => setTimeout(resolve, poolState.connectLatencyMs));
+      if (poolState.connectLatencyMs > 0)
+        await new Promise((resolve) => setTimeout(resolve, poolState.connectLatencyMs));
       return {
         query: async () => {
-          if (poolState.queryLatencyMs > 0) await new Promise(resolve => setTimeout(resolve, poolState.queryLatencyMs));
+          if (poolState.queryLatencyMs > 0)
+            await new Promise((resolve) => setTimeout(resolve, poolState.queryLatencyMs));
           return { rows: [{ '?column?': 1 }] };
         },
         release: vi.fn(),
       };
     }
 
-    async end() { /* no-op */ }
+    async end() {
+      /* no-op */
+    }
   }
 
   return { Pool: FakePool };
@@ -53,7 +57,7 @@ describe('MonitoredPool health probe and adaptive sizing', () => {
     poolState.waitingCount = 2;
     poolState.failConnect = false;
 
-    let now = 1_000;
+    const now = 1_000;
     const pool = new MonitoredPool({
       max: 10,
       min: 2,

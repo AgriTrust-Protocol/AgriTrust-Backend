@@ -23,6 +23,8 @@ describe('developer onboarding script', () => {
     expect(script).toContain('require_command node');
     expect(script).toContain('require_command npm');
     expect(script).toContain('Node.js v18 or newer is required');
-    expect(script.indexOf('Node.js v18 or newer is required')).toBeLessThan(script.indexOf('npm ci'));
+    expect(script.indexOf('Node.js v18 or newer is required')).toBeLessThan(
+      script.indexOf('npm ci'),
+    );
   });
 });

@@ -12,7 +12,13 @@ declare module 'ioredis' {
     zpopmin(key: string, count: number): Promise<string[]>;
     zrange(key: string, start: number, stop: number): Promise<string[]>;
     zrem(key: string, member: string): Promise<number>;
-    multi(): { hset(key: string, field: string, value: string): unknown; zadd(key: string, score: number, member: string): unknown; zrem(key: string, member: string): unknown; hdel(key: string, field: string): unknown; exec(): Promise<unknown> };
+    multi(): {
+      hset(key: string, field: string, value: string): unknown;
+      zadd(key: string, score: number, member: string): unknown;
+      zrem(key: string, member: string): unknown;
+      hdel(key: string, field: string): unknown;
+      exec(): Promise<unknown>;
+    };
   }
   export default Redis;
 }

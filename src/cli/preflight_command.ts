@@ -29,7 +29,9 @@ function parseArgs(): PreflightOptions {
   const network = opts['network'] || 'testnet';
 
   if (!contractId || !functionName || !sourceSecret) {
-    console.error('Usage: agritrust preflight --contract-id <id> --function <name> --args <json> --source-secret <secret> [--rpc-url <url>] [--network <testnet|mainnet>]');
+    console.error(
+      'Usage: agritrust preflight --contract-id <id> --function <name> --args <json> --source-secret <secret> [--rpc-url <url>] [--network <testnet|mainnet>]',
+    );
     process.exit(1);
   }
 
@@ -70,11 +72,17 @@ async function main(): Promise<void> {
     console.error('Running preflight simulation...');
     const result = await analyzer.analyze(options);
 
-    console.log(JSON.stringify({
-      resourceFootprint: result.resourceFootprint,
-      minResourceFee: result.minResourceFee,
-      transactionEnvelopeXdr: result.transactionEnvelopeXdr,
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          resourceFootprint: result.resourceFootprint,
+          minResourceFee: result.minResourceFee,
+          transactionEnvelopeXdr: result.transactionEnvelopeXdr,
+        },
+        null,
+        2,
+      ),
+    );
   } catch (err) {
     if (err instanceof PreflightError) {
       console.error('Preflight error:', err.message);

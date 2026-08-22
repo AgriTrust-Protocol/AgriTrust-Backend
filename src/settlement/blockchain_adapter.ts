@@ -63,10 +63,7 @@ export interface PolygonRpcClient {
    * Submits a batch of ERC-20 transfer calls. Implementations should use
    * a multicall contract or sequenced transactions with atomicity guarantees.
    */
-  submitBatch(
-    contractAddress: string,
-    transfers: Erc20Transfer[],
-  ): Promise<TransactionReceipt[]>;
+  submitBatch(contractAddress: string, transfers: Erc20Transfer[]): Promise<TransactionReceipt[]>;
 }
 
 /** USDC uses 6 decimal places. */
@@ -114,10 +111,7 @@ export class BlockchainAdapter {
       nettingGroupId: group.groupId,
     };
 
-    const receipts = await this.rpc.submitBatch(
-      POLYGON_USDC_ADDRESS,
-      request.transfers,
-    );
+    const receipts = await this.rpc.submitBatch(POLYGON_USDC_ADDRESS, request.transfers);
 
     const anyFailed = receipts.some((r) => !r.success);
     const txHash = receipts[0]?.txHash ?? '';

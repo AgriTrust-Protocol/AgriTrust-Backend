@@ -11,7 +11,11 @@ class MockMqttClient extends EventEmitter {
   subscribe(topic: string): void {
     this.subscribedTopic = topic;
   }
-  publish(topic: string, payload: Buffer, packet?: { properties?: { userProperties?: Record<string, string> } }): void {
+  publish(
+    topic: string,
+    payload: Buffer,
+    packet?: { properties?: { userProperties?: Record<string, string> } },
+  ): void {
     this.emit('message', topic, payload, packet);
   }
 }
@@ -36,16 +40,21 @@ describe('TelemetryGateway', () => {
 
   it('migrates legacy v1 telemetry to the canonical record', async () => {
     const { gateway } = buildGateway();
-    const record = await gateway.handleMessage('reefer-1/telemetry', Buffer.from(JSON.stringify({
-      schema_version: 'v1',
-      device_id: 'reefer-1',
-      ts: '2026-06-26T00:00:00.000Z',
-      temp_c: 2.5,
-      hum_pct: 77,
-      shock_g: 0.2,
-      lat: 6.45,
-      lon: 3.39,
-    })));
+    const record = await gateway.handleMessage(
+      'reefer-1/telemetry',
+      Buffer.from(
+        JSON.stringify({
+          schema_version: 'v1',
+          device_id: 'reefer-1',
+          ts: '2026-06-26T00:00:00.000Z',
+          temp_c: 2.5,
+          hum_pct: 77,
+          shock_g: 0.2,
+          lat: 6.45,
+          lon: 3.39,
+        }),
+      ),
+    );
 
     expect(record).toMatchObject({
       deviceId: 'reefer-1',
@@ -60,13 +69,15 @@ describe('TelemetryGateway', () => {
 
   it('honors x-schema-version MQTT user properties over payload fields', async () => {
     const { gateway } = buildGateway();
-    const payload = Buffer.from(JSON.stringify({
-      schema_version: 'ignored',
-      deviceId: 'tracker-2',
-      timestamp: '2026-06-26T01:00:00.000Z',
-      temperature: -4,
-      metadata: { firmware: '2.0.0' },
-    }));
+    const payload = Buffer.from(
+      JSON.stringify({
+        schema_version: 'ignored',
+        deviceId: 'tracker-2',
+        timestamp: '2026-06-26T01:00:00.000Z',
+        temperature: -4,
+        metadata: { firmware: '2.0.0' },
+      }),
+    );
 
     const record = await gateway.handleMessage('tracker-2/telemetry', payload, {
       properties: { userProperties: { 'x-schema-version': 'v2' } },
@@ -78,7 +89,10 @@ describe('TelemetryGateway', () => {
 
   it('quarantines unknown schema versions with an unknown tag', async () => {
     const { gateway, redis } = buildGateway();
-    const record = await gateway.handleMessage('bad/telemetry', Buffer.from(JSON.stringify({ deviceId: 'bad' })));
+    const record = await gateway.handleMessage(
+      'bad/telemetry',
+      Buffer.from(JSON.stringify({ deviceId: 'bad' })),
+    );
 
     expect(record).toBeUndefined();
     expect(redis.values).toHaveLength(1);
@@ -89,7 +103,7 @@ describe('TelemetryGateway', () => {
 
   it('rejects decoded payloads larger than 64 KB', async () => {
     const { gateway, redis } = buildGateway();
-    const oversized = Buffer.from('x'.repeat((64 * 1024) + 1)).toString('base64');
+    const oversized = Buffer.from('x'.repeat(64 * 1024 + 1)).toString('base64');
     const record = await gateway.handleMessage('large/telemetry', Buffer.from(oversized));
 
     expect(record).toBeUndefined();

@@ -15,7 +15,9 @@ const latencySignal: IncidentSignal = {
 
 describe('IncidentRunbookAutomation', () => {
   it('matches latency signals to the critical-path runbook and triggers PagerDuty', async () => {
-    const trigger = vi.fn().mockResolvedValue({ dedupKey: 'pd-dedup', incidentKey: 'P123', status: 'success' });
+    const trigger = vi
+      .fn()
+      .mockResolvedValue({ dedupKey: 'pd-dedup', incidentKey: 'P123', status: 'success' });
     const automation = new IncidentRunbookAutomation({
       env: { PAGERDUTY_API_GATEWAY_ROUTING_KEY: 'routing-key' },
       pagerDutyClientFactory: (routingKey) => {
@@ -55,6 +57,8 @@ describe('IncidentRunbookAutomation', () => {
   it('fails closed when the PagerDuty routing key is not configured', async () => {
     const automation = new IncidentRunbookAutomation({ env: {} });
 
-    await expect(automation.handle(latencySignal)).rejects.toThrow('Missing PagerDuty routing key env var PAGERDUTY_API_GATEWAY_ROUTING_KEY');
+    await expect(automation.handle(latencySignal)).rejects.toThrow(
+      'Missing PagerDuty routing key env var PAGERDUTY_API_GATEWAY_ROUTING_KEY',
+    );
   });
 });

@@ -73,7 +73,10 @@ export class MigrationManager {
   private readonly statementTimeoutMs: number;
   private readonly now: () => Date;
 
-  constructor(private readonly pool: Pool, options: MigrationRunnerOptions = {}) {
+  constructor(
+    private readonly pool: Pool,
+    options: MigrationRunnerOptions = {},
+  ) {
     this.migrationsDir = options.migrationsDir ?? DEFAULT_MIGRATIONS_DIR;
     this.lockKey = options.lockKey ?? DEFAULT_LOCK_KEY;
     this.statementTimeoutMs = options.statementTimeoutMs ?? 30_000;
@@ -86,7 +89,9 @@ export class MigrationManager {
       const files = await this.loadMigrations();
       const applied = await this.getAppliedMap(client);
       const pending = files.filter((file) => !applied.has(file.version));
-      const selected = targetVersion ? pending.filter((file) => file.version <= targetVersion) : pending;
+      const selected = targetVersion
+        ? pending.filter((file) => file.version <= targetVersion)
+        : pending;
       const executed: MigrationPlanStep[] = [];
 
       for (const file of selected) {
@@ -124,8 +129,10 @@ export class MigrationManager {
       for (const row of selected) {
         const file = fileByVersion.get(row.version);
         if (!file) throw new Error(`Cannot rollback ${row.version}: migration file is missing`);
-        if (file.checksum !== row.checksum) throw new Error(`Cannot rollback ${row.version}: checksum mismatch`);
-        if (!file.downSql?.trim()) throw new Error(`Cannot rollback ${row.version}: missing -- migrate:down section`);
+        if (file.checksum !== row.checksum)
+          throw new Error(`Cannot rollback ${row.version}: checksum mismatch`);
+        if (!file.downSql?.trim())
+          throw new Error(`Cannot rollback ${row.version}: missing -- migrate:down section`);
         await this.executeInTransaction(client, file, 'down', file.downSql);
         await client.query(
           `UPDATE schema_migrations
@@ -187,10 +194,17 @@ export class MigrationManager {
       rolled_back_at TIMESTAMPTZ,
       status TEXT NOT NULL DEFAULT 'applied' CHECK (status IN ('applied', 'rolled_back'))
     )`);
-    await client.query('CREATE INDEX IF NOT EXISTS idx_schema_migrations_status_version ON schema_migrations (status, version)');
+    await client.query(
+      'CREATE INDEX IF NOT EXISTS idx_schema_migrations_status_version ON schema_migrations (status, version)',
+    );
   }
 
-  private async executeInTransaction(client: PoolClient, file: MigrationFile, direction: MigrationDirection, sql: string): Promise<void> {
+  private async executeInTransaction(
+    client: PoolClient,
+    file: MigrationFile,
+    direction: MigrationDirection,
+    sql: string,
+  ): Promise<void> {
     const startedAt = Date.now();
     try {
       await client.query('BEGIN');
@@ -199,38 +213,52 @@ export class MigrationManager {
       await client.query(sql);
       await client.query('COMMIT');
       migrationExecutionsTotal.inc({ direction, status: 'success' });
-      migrationDurationMs.observe({ direction, version: file.version, status: 'success' }, Date.now() - startedAt);
+      migrationDurationMs.observe(
+        { direction, version: file.version, status: 'success' },
+        Date.now() - startedAt,
+      );
     } catch (error) {
       await client.query('ROLLBACK').catch(() => undefined);
       migrationExecutionsTotal.inc({ direction, status: 'failure' });
-      migrationDurationMs.observe({ direction, version: file.version, status: 'failure' }, Date.now() - startedAt);
+      migrationDurationMs.observe(
+        { direction, version: file.version, status: 'failure' },
+        Date.now() - startedAt,
+      );
       throw error;
     }
   }
 
   private async loadMigrations(): Promise<MigrationFile[]> {
     const entries = await fs.readdir(this.migrationsDir);
-    return Promise.all(entries.filter((entry) => entry.endsWith('.sql')).sort().map(async (entry) => {
-      const fullPath = path.join(this.migrationsDir, entry);
-      const raw = await fs.readFile(fullPath, 'utf8');
-      const [upSql, downSql] = raw.split(/^--\s*migrate:down\s*$/im);
-      const match = entry.match(/^(\d+)_(.+)\.sql$/);
-      if (!match) throw new Error(`Invalid migration filename: ${entry}`);
-      return {
-        version: match[1],
-        name: match[2],
-        upSql: upSql.replace(/^--\s*migrate:up\s*$/im, '').trim(),
-        downSql: downSql?.trim(),
-        checksum: createHash('sha256').update(raw).digest('hex'),
-      };
-    }));
+    return Promise.all(
+      entries
+        .filter((entry) => entry.endsWith('.sql'))
+        .sort()
+        .map(async (entry) => {
+          const fullPath = path.join(this.migrationsDir, entry);
+          const raw = await fs.readFile(fullPath, 'utf8');
+          const [upSql, downSql] = raw.split(/^--\s*migrate:down\s*$/im);
+          const match = entry.match(/^(\d+)_(.+)\.sql$/);
+          if (!match) throw new Error(`Invalid migration filename: ${entry}`);
+          return {
+            version: match[1],
+            name: match[2],
+            upSql: upSql.replace(/^--\s*migrate:up\s*$/im, '').trim(),
+            downSql: downSql?.trim(),
+            checksum: createHash('sha256').update(raw).digest('hex'),
+          };
+        }),
+    );
   }
 
   private async getAppliedMap(client: PoolClient): Promise<Map<string, AppliedMigration>> {
     return new Map((await this.getAppliedMigrations(client)).map((row) => [row.version, row]));
   }
 
-  private async getAppliedMigrations(client: Pick<PoolClient, 'query'>, includeRolledBack = false): Promise<AppliedMigration[]> {
+  private async getAppliedMigrations(
+    client: Pick<PoolClient, 'query'>,
+    includeRolledBack = false,
+  ): Promise<AppliedMigration[]> {
     const result = await client.query(
       `SELECT version, name, checksum, applied_at, rolled_back_at, status
          FROM schema_migrations
@@ -248,7 +276,9 @@ export class MigrationManager {
   }
 
   private async publishCurrentVersion(client: Pick<PoolClient, 'query'>): Promise<void> {
-    const result = await client.query("SELECT COALESCE(MAX(version), '0') AS version FROM schema_migrations WHERE status = 'applied'");
+    const result = await client.query(
+      "SELECT COALESCE(MAX(version), '0') AS version FROM schema_migrations WHERE status = 'applied'",
+    );
     migrationCurrentVersion.set(Number(result.rows[0]?.version ?? 0));
   }
 }

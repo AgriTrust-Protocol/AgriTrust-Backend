@@ -41,7 +41,9 @@ function envToAppConfig(env: Record<string, string | undefined>): Record<string,
     logFormat: env.LOG_FORMAT,
     openapiEnforcementMode: env.OPENAPI_ENFORCEMENT_MODE,
     openapiSpecPaths: env.OPENAPI_SPEC_PATHS
-      ? env.OPENAPI_SPEC_PATHS.split(',').map(s => s.trim()).filter(Boolean)
+      ? env.OPENAPI_SPEC_PATHS.split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
       : undefined,
     uvThreadpoolSize: env.UV_THREADPOOL_SIZE,
     metricsPrefix: env.METRICS_PREFIX,
@@ -50,7 +52,9 @@ function envToAppConfig(env: Record<string, string | undefined>): Record<string,
     configDir: env.CONFIG_DIR,
     configFile: env.CONFIG_FILE,
     corsOrigins: env.CORS_ORIGINS
-      ? env.CORS_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
+      ? env.CORS_ORIGINS.split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
       : undefined,
     rateLimitWindowMs: env.RATE_LIMIT_WINDOW_MS,
     rateLimitMax: env.RATE_LIMIT_MAX,
@@ -86,7 +90,7 @@ function computeConfigDiff(
 
 export class ConfigLoader {
   private current: AppConfig | null = null;
-  private frozen: boolean = false;
+  private frozen = false;
   private listeners: Set<ConfigListener> = new Set();
   private watcher: fs.FSWatcher | null = null;
   private envPath: string | null = null;
@@ -94,7 +98,7 @@ export class ConfigLoader {
   private configHistory: ConfigHistoryEntry[] = [];
   private readonly maxHistorySize: number;
 
-  private constructor(maxHistorySize: number = 10) {
+  private constructor(maxHistorySize = 10) {
     this.maxHistorySize = maxHistorySize;
   }
 
@@ -119,13 +123,18 @@ export class ConfigLoader {
 
   onChange(listener: ConfigListener): () => void {
     this.listeners.add(listener);
-    return () => { this.listeners.delete(listener); };
+    return () => {
+      this.listeners.delete(listener);
+    };
   }
 
   freeze(): void {
     this.frozen = true;
     if (this.current) {
-      this.current = deepFreeze({ ...this.current } as unknown as Record<string, unknown>) as unknown as AppConfig;
+      this.current = deepFreeze({ ...this.current } as unknown as Record<
+        string,
+        unknown
+      >) as unknown as AppConfig;
     }
   }
 
@@ -155,7 +164,7 @@ export class ConfigLoader {
       throw new Error('ConfigLoader is frozen. Call unfreeze() before making changes.');
     }
 
-    const env = options?.env ?? process.env as Record<string, string | undefined>;
+    const env = options?.env ?? (process.env as Record<string, string | undefined>);
     this.envPath = options?.envPath ?? this.resolveEnvPath();
 
     const raw = envToAppConfig(env);
@@ -216,7 +225,9 @@ export class ConfigLoader {
     try {
       parsed = JSON.parse(content);
     } catch (err) {
-      throw new Error(`Failed to parse JSON config file ${resolvedPath}: ${(err as Error).message}`);
+      throw new Error(
+        `Failed to parse JSON config file ${resolvedPath}: ${(err as Error).message}`,
+      );
     }
 
     this.envPath = resolvedPath;
@@ -238,7 +249,9 @@ export class ConfigLoader {
     try {
       parsed = YAML.parse(content);
     } catch (err) {
-      throw new Error(`Failed to parse YAML config file ${resolvedPath}: ${(err as Error).message}`);
+      throw new Error(
+        `Failed to parse YAML config file ${resolvedPath}: ${(err as Error).message}`,
+      );
     }
 
     if (!parsed || typeof parsed !== 'object') {
@@ -262,7 +275,9 @@ export class ConfigLoader {
 
   reload(): AppConfig {
     if (!this.envPath) {
-      throw new Error('No config source path available. Call load(), loadDotEnv(), or loadConfigFile() first.');
+      throw new Error(
+        'No config source path available. Call load(), loadDotEnv(), or loadConfigFile() first.',
+      );
     }
     return this.loadConfigFile(this.envPath);
   }
@@ -271,7 +286,8 @@ export class ConfigLoader {
     const valid = validate(obj);
     if (!valid) {
       const messages = validate.errors!.map(
-        err => `  - ${err.instancePath || '(root)'} ${err.message}${err.params ? ' ' + JSON.stringify(err.params) : ''}`,
+        (err) =>
+          `  - ${err.instancePath || '(root)'} ${err.message}${err.params ? ' ' + JSON.stringify(err.params) : ''}`,
       );
       return { valid: false, errors: messages };
     }
@@ -293,11 +309,12 @@ export class ConfigLoader {
     );
   }
 
-  private validateAndSet(raw: Record<string, unknown>, source: string = 'unknown'): AppConfig {
+  private validateAndSet(raw: Record<string, unknown>, source = 'unknown'): AppConfig {
     const valid = validate(raw);
     if (!valid) {
       const messages = validate.errors!.map(
-        err => `  - ${err.instancePath || '(root)'} ${err.message}${err.params ? ' ' + JSON.stringify(err.params) : ''}`,
+        (err) =>
+          `  - ${err.instancePath || '(root)'} ${err.message}${err.params ? ' ' + JSON.stringify(err.params) : ''}`,
       );
       throw new Error(`Configuration validation failed:\n${messages.join('\n')}`);
     }
@@ -308,22 +325,20 @@ export class ConfigLoader {
       if (!cfg.mtlsServerKeyPath || !cfg.mtlsServerCertPath || !cfg.mtlsCACertPath) {
         throw new Error(
           'Configuration validation failed:\n' +
-          '  - MTLS_SERVER_KEY_PATH, MTLS_SERVER_CERT_PATH, and MTLS_CA_CERT_PATH are required when MTLS_ENABLED=true',
+            '  - MTLS_SERVER_KEY_PATH, MTLS_SERVER_CERT_PATH, and MTLS_CA_CERT_PATH are required when MTLS_ENABLED=true',
         );
       }
     }
 
     if (cfg.databasePoolMin > cfg.databasePoolMax) {
       throw new Error(
-        'Configuration validation failed:\n' +
-        '  - DATABASE_POOL_MIN must be <= DATABASE_POOL_MAX',
+        'Configuration validation failed:\n' + '  - DATABASE_POOL_MIN must be <= DATABASE_POOL_MAX',
       );
     }
 
     if (cfg.redisPoolMin > cfg.redisPoolMax) {
       throw new Error(
-        'Configuration validation failed:\n' +
-        '  - REDIS_POOL_MIN must be <= REDIS_POOL_MAX',
+        'Configuration validation failed:\n' + '  - REDIS_POOL_MIN must be <= REDIS_POOL_MAX',
       );
     }
 
@@ -334,7 +349,7 @@ export class ConfigLoader {
     return this.current;
   }
 
-  startHotReload(intervalMs: number = 5000): void {
+  startHotReload(intervalMs = 5000): void {
     if (this.pollingInterval || this.watcher) return;
 
     if (this.envPath && fs.existsSync(this.envPath)) {

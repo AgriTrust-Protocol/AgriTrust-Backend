@@ -9,7 +9,7 @@ enum BackpressureLevel {
 class BackpressureController extends EventEmitter {
   private levels: Map<string, BackpressureLevel> = new Map();
   private signals: Map<string, Buffer> = new Map();
-  globalBackpressure: boolean = false;
+  globalBackpressure = false;
 
   setBackpressure(sensorId: string, level: BackpressureLevel): void {
     const prev = this.levels.get(sensorId) ?? BackpressureLevel.NORMAL;

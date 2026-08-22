@@ -11,8 +11,8 @@ export interface CircuitBreakerConfig {
 
 export class CircuitBreaker {
   private state: CircuitState = CircuitState.CLOSED;
-  private failureCount: number = 0;
-  private lastFailureTime: number = 0;
+  private failureCount = 0;
+  private lastFailureTime = 0;
 
   constructor(private config: CircuitBreakerConfig) {}
 
@@ -36,7 +36,10 @@ export class CircuitBreaker {
   }
 
   public getState(): CircuitState {
-    if (this.state === CircuitState.OPEN && Date.now() - this.lastFailureTime > this.config.recoveryTimeoutMs) {
+    if (
+      this.state === CircuitState.OPEN &&
+      Date.now() - this.lastFailureTime > this.config.recoveryTimeoutMs
+    ) {
       return CircuitState.HALF_OPEN;
     }
     return this.state;
@@ -52,7 +55,10 @@ export class CircuitBreaker {
   private onFailure(): void {
     this.failureCount++;
     this.lastFailureTime = Date.now();
-    if (this.state === CircuitState.HALF_OPEN || this.failureCount >= this.config.failureThreshold) {
+    if (
+      this.state === CircuitState.HALF_OPEN ||
+      this.failureCount >= this.config.failureThreshold
+    ) {
       this.state = CircuitState.OPEN;
     }
   }

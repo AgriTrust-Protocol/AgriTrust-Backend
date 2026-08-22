@@ -72,7 +72,10 @@ export class BaggageManager {
         part += `;${entry.metadata}`;
       }
 
-      if (totalLength + part.length + (parts.length > 0 ? 1 : 0) <= BaggageManager.MAX_TOTAL_LENGTH) {
+      if (
+        totalLength + part.length + (parts.length > 0 ? 1 : 0) <=
+        BaggageManager.MAX_TOTAL_LENGTH
+      ) {
         parts.push(part);
         totalLength += part.length + (parts.length > 1 ? 1 : 0);
       } else {

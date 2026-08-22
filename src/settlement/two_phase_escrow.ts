@@ -52,9 +52,7 @@ export async function processTwoPhaseEscrowRelease(
   const releaseOutcome = await engine.release(params.escrowId);
   if (!releaseOutcome.ok) {
     await coordinator.rollback(txUuid);
-    throw new Error(
-      `Escrow release failed locally: ${releaseOutcome.reason}`,
-    );
+    throw new Error(`Escrow release failed locally: ${releaseOutcome.reason}`);
   }
 
   // Phase 2: submit to Soroban and confirm

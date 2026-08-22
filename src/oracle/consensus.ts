@@ -24,12 +24,18 @@ function median(values: number[]): number {
   return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 }
 
-function trustFor(sourceId: string, trustScores?: Map<string, number> | Record<string, number>): number {
+function trustFor(
+  sourceId: string,
+  trustScores?: Map<string, number> | Record<string, number>,
+): number {
   const score = trustScores instanceof Map ? trustScores.get(sourceId) : trustScores?.[sourceId];
   return Number.isFinite(score) && score! > 0 ? score! : DEFAULT_TRUST_SCORE;
 }
 
-export function rejectOutliersByModifiedZScore(reports: NormalizedYieldReport[], threshold = 3.5): {
+export function rejectOutliersByModifiedZScore(
+  reports: NormalizedYieldReport[],
+  threshold = 3.5,
+): {
   accepted: NormalizedYieldReport[];
   rejected: NormalizedYieldReport[];
 } {
@@ -81,7 +87,8 @@ export function computeWeightedConsensus(
   const values = usable.map((report) => report.value);
   const weights = usable.map((report) => trustFor(report.sourceId, options.trustScores));
   const weightSum = weights.reduce((sum, weight) => sum + weight, 0);
-  const yieldEstimate = values.reduce((sum, value, index) => sum + value * weights[index], 0) / weightSum;
+  const yieldEstimate =
+    values.reduce((sum, value, index) => sum + value * weights[index], 0) / weightSum;
   const ci = bootstrapConfidenceInterval(values, weights, {
     resamples: options.bootstrapResamples ?? 10_000,
     random: options.random,
@@ -92,7 +99,9 @@ export function computeWeightedConsensus(
     confidenceInterval: ci,
     sourceCount: usable.length,
     rejectedSourceIds: rejected.map((report) => report.sourceId),
-    trustScores: Object.fromEntries(usable.map((report, index) => [report.sourceId, weights[index]])),
+    trustScores: Object.fromEntries(
+      usable.map((report, index) => [report.sourceId, weights[index]]),
+    ),
     penaltyFlag: false,
   };
 }

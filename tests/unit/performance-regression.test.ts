@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { evaluatePerformanceSample, evaluatePerformanceSuite } from '../../src/performance/regression';
+import {
+  evaluatePerformanceSample,
+  evaluatePerformanceSuite,
+} from '../../src/performance/regression';
 
 describe('performance regression detection', () => {
   it('passes critical paths under the 100ms P99 and 99.99% availability budgets', () => {

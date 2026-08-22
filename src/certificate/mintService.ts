@@ -29,7 +29,7 @@ export class MintService {
       // 2. Check if already minted or in progress
       const checkResult = await client.query(
         'SELECT certificate_id, status FROM certificates WHERE batch_id = $1',
-        [batchId]
+        [batchId],
       );
 
       if (checkResult.rows.length > 0) {
@@ -45,14 +45,14 @@ export class MintService {
       // 3. Register minting intent (atomic check-and-insert)
       const insertResult = await client.query(
         "INSERT INTO certificates (batch_id, status) VALUES ($1, 'minting') ON CONFLICT (batch_id) DO NOTHING RETURNING id",
-        [batchId]
+        [batchId],
       );
 
       if (insertResult.rows.length === 0) {
         // Re-check status if insert failed (race condition between select and insert)
         const recheck = await client.query(
           'SELECT certificate_id, status FROM certificates WHERE batch_id = $1',
-          [batchId]
+          [batchId],
         );
         const row = recheck.rows[0];
         if (row.status === 'minted') {
@@ -69,14 +69,16 @@ export class MintService {
       // 5. Update certificate record
       await client.query(
         "UPDATE certificates SET certificate_id = $1, status = 'minted' WHERE batch_id = $2",
-        [certificateId, batchId]
+        [certificateId, batchId],
       );
 
       return { success: true, certificateId };
     } catch (err) {
       console.error('Minting failed:', err);
       // Clean up failed intent if necessary
-      await client.query("DELETE FROM certificates WHERE batch_id = $1 AND status = 'minting'", [batchId]);
+      await client.query("DELETE FROM certificates WHERE batch_id = $1 AND status = 'minting'", [
+        batchId,
+      ]);
       return { success: false, error: err instanceof Error ? err.message : String(err) };
     } finally {
       // 6. Release lock and connection
@@ -101,9 +103,13 @@ export class MintService {
     return hash.digest('hex');
   }
 
-  private async mockSorobanMint(batchId: string, metadata: any, idempotencyKey: string): Promise<string> {
+  private async mockSorobanMint(
+    batchId: string,
+    metadata: any,
+    idempotencyKey: string,
+  ): Promise<string> {
     // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     return `cert_${batchId}_${Date.now()}`;
   }
 }

@@ -80,7 +80,10 @@ export function toTokenUnits(amount: string, sorobanDecimals: number = SOROBAN_S
  * @param sorobanDecimals  Decimal precision of the token (default 7)
  * @returns Physical measurement as decimal string
  */
-export function fromTokenUnits(tokenUnits: string, sorobanDecimals: number = SOROBAN_SCALE): string {
+export function fromTokenUnits(
+  tokenUnits: string,
+  sorobanDecimals: number = SOROBAN_SCALE,
+): string {
   const fp = fromString(tokenUnits, INTERNAL_SCALE);
   const factor = fromString('1' + '0'.repeat(sorobanDecimals), INTERNAL_SCALE);
   const result = divide(fp, factor, INTERNAL_SCALE);
@@ -178,7 +181,7 @@ export function weightedAverage(pairs: ReadonlyArray<readonly [string, string]>)
 export function reconcileInventory(
   physicalTotal: string,
   holdings: readonly string[],
-  tolerance: string = '0.0000001',
+  tolerance = '0.0000001',
 ): boolean {
   const total = fromString(physicalTotal, INTERNAL_SCALE);
   const sumHoldings = fromString(sumDecimals(holdings), INTERNAL_SCALE);

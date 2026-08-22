@@ -42,7 +42,7 @@ class MetricRegistry {
 
 const registry = new MetricRegistry();
 
-function exposeBufferUtilization(buffer: SlidingWindowBuffer, intervalMs: number = 5000): () => void {
+function exposeBufferUtilization(buffer: SlidingWindowBuffer, intervalMs = 5000): () => void {
   const update = () => {
     registry.setGauge('sensor_ingestion_buffer_utilization', buffer.getUtilization());
   };

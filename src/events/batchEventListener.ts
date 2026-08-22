@@ -2,7 +2,7 @@ import { MintService } from '../certificate/mintService';
 
 export class BatchEventListener {
   private mintService: MintService;
-  private pollInterval: number = 5000;
+  private pollInterval = 5000;
 
   constructor(mintService: MintService) {
     this.mintService = mintService;

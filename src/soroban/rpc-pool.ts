@@ -17,8 +17,14 @@ export class RpcPool {
 
   public async start(): Promise<void> {
     await this.discoverNodes();
-    this.discoveryInterval = setInterval(() => this.discoverNodes(), sorobanConfig.discoveryIntervalMs);
-    this.healthCheckInterval = setInterval(() => this.runHealthChecks(), sorobanConfig.healthCheckIntervalMs);
+    this.discoveryInterval = setInterval(
+      () => this.discoverNodes(),
+      sorobanConfig.discoveryIntervalMs,
+    );
+    this.healthCheckInterval = setInterval(
+      () => this.runHealthChecks(),
+      sorobanConfig.healthCheckIntervalMs,
+    );
   }
 
   public stop(): void {
@@ -64,7 +70,7 @@ export class RpcPool {
   }
 
   private async runHealthChecks(): Promise<void> {
-    const promises = Array.from(this.nodes.keys()).map(url => this.healthChecker.runCheck(url));
+    const promises = Array.from(this.nodes.keys()).map((url) => this.healthChecker.runCheck(url));
     await Promise.all(promises);
   }
 }

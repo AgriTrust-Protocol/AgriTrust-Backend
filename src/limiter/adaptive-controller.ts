@@ -53,7 +53,9 @@ export class AdaptiveController {
     const latencyScore = this.degradationScore(telemetry.p99LatencyMs, 200, 2_000);
     const gasScore = this.degradationScore(telemetry.gasPriceXlm, 0.001, 0.01);
     const degradation = Math.max(latencyScore, gasScore);
-    const max = RATE_LIMIT_ADAPTIVE_CEILING - degradation * (RATE_LIMIT_ADAPTIVE_CEILING - RATE_LIMIT_ADAPTIVE_FLOOR);
+    const max =
+      RATE_LIMIT_ADAPTIVE_CEILING -
+      degradation * (RATE_LIMIT_ADAPTIVE_CEILING - RATE_LIMIT_ADAPTIVE_FLOOR);
     return Math.round(this.clamp(max, RATE_LIMIT_ADAPTIVE_FLOOR, RATE_LIMIT_ADAPTIVE_CEILING));
   }
 

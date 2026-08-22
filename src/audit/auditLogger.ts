@@ -28,7 +28,7 @@ export class AuditLogger {
       // Step 2: Compute next sequence number within the lock
       const res = await client.query(
         'SELECT COALESCE(MAX(sequence), 0) + 1 AS next_seq FROM batch_audit WHERE batch_id = $1',
-        [batchId]
+        [batchId],
       );
       const nextSequence = res.rows[0].next_seq;
 
@@ -36,7 +36,7 @@ export class AuditLogger {
       const id = uuidv4();
       await client.query(
         'INSERT INTO batch_audit (id, batch_id, sequence, transition) VALUES ($1, $2, $3, $4)',
-        [id, batchId, nextSequence, transition]
+        [id, batchId, nextSequence, transition],
       );
 
       await client.query('COMMIT');
@@ -56,7 +56,7 @@ export class AuditLogger {
   async getAuditLogs(batchId: string) {
     const res = await this.pool.query(
       'SELECT sequence, transition, created_at FROM batch_audit WHERE batch_id = $1 ORDER BY sequence',
-      [batchId]
+      [batchId],
     );
     return res.rows;
   }

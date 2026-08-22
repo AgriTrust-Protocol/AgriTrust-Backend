@@ -34,7 +34,8 @@ export function setupTracing(serviceName: string) {
   }
 
   process.on('SIGTERM', () => {
-    sdk.shutdown()
+    sdk
+      .shutdown()
       .then(() => logger.info('otel.tracing.terminated'))
       .catch((error: unknown) => logger.error('otel.tracing.termination_failed', error))
       .finally(() => process.exit(0));

@@ -44,7 +44,7 @@ export class EnvironmentalLogWriter {
   private pool: Pool;
   private batchSize: number;
   private pending: EnvironmentalLogRow[] = [];
-  private totalInserted: number = 0;
+  private totalInserted = 0;
 
   constructor(pool: Pool, batchSize: number = DEFAULT_BATCH_SIZE) {
     this.pool = pool;
@@ -147,11 +147,11 @@ export function generateSyntheticRow(
   return {
     sensorId,
     timestamp,
-    soilMoisture: 10 + Math.random() * 40,       // 10–50 %
-    soilPh: 5.5 + Math.random() * 3.5,            // 5.5–9.0
-    ambientTemp: 10 + Math.random() * 30,         // 10–40 °C
-    humidity: 30 + Math.random() * 60,            // 30–90 %
-    solarRadiation: 100 + Math.random() * 800,    // 100–900 W/m²
+    soilMoisture: 10 + Math.random() * 40, // 10–50 %
+    soilPh: 5.5 + Math.random() * 3.5, // 5.5–9.0
+    ambientTemp: 10 + Math.random() * 30, // 10–40 °C
+    humidity: 30 + Math.random() * 60, // 30–90 %
+    solarRadiation: 100 + Math.random() * 800, // 100–900 W/m²
     spatialZoneId,
   };
 }

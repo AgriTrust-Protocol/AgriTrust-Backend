@@ -158,7 +158,7 @@ function verifyBitORProof(proof: BitORProof, context: Uint8Array): boolean {
     const A1 = safeMultiply(H, z1).subtract(safeMultiply(C_minus_G, proof.e1));
 
     const challenge = hashProofChallenge(A0, A1, proof.commitment, context);
-    return ((proof.e0 + proof.e1) % CURVE_ORDER) === challenge;
+    return (proof.e0 + proof.e1) % CURVE_ORDER === challenge;
   } catch {
     return false;
   }
@@ -178,9 +178,12 @@ function hashProofChallenge(
     A0Bytes.length + A1Bytes.length + C.commitment.length + context.length,
   );
   let offset = 0;
-  combined.set(A0Bytes, offset); offset += A0Bytes.length;
-  combined.set(A1Bytes, offset); offset += A1Bytes.length;
-  combined.set(C.commitment, offset); offset += C.commitment.length;
+  combined.set(A0Bytes, offset);
+  offset += A0Bytes.length;
+  combined.set(A1Bytes, offset);
+  offset += A1Bytes.length;
+  combined.set(C.commitment, offset);
+  offset += C.commitment.length;
   combined.set(context, offset);
 
   return scalarFromBytesLE(sha512(combined).subarray(0, 32));
@@ -196,9 +199,7 @@ export function generateRangeProof(
   dimensionName: string,
 ): RangeProof {
   if (value < min || value > max) {
-    throw new ZKError(
-      `Value ${value} is outside the allowed range [${min}, ${max}]`,
-    );
+    throw new ZKError(`Value ${value} is outside the allowed range [${min}, ${max}]`);
   }
 
   const dimensionId = resolveDimensionId(dimensionName);
@@ -229,7 +230,7 @@ export function generateRangeProof(
 
     const r_i = scalarFromBytesLE(bitBlinding);
     const weight = 1n << BigInt(i);
-    valueBlindingScalar = (valueBlindingScalar + (r_i * weight)) % CURVE_ORDER;
+    valueBlindingScalar = (valueBlindingScalar + r_i * weight) % CURVE_ORDER;
   }
 
   // Create value commitment using aggregated blinding
@@ -244,9 +245,7 @@ export function generateRangeProof(
 
     const positionBytes = new Uint8Array(4);
     new DataView(positionBytes.buffer).setUint32(0, i, false);
-    const context = new Uint8Array(
-      dimensionId.length + farmerKey.length + positionBytes.length,
-    );
+    const context = new Uint8Array(dimensionId.length + farmerKey.length + positionBytes.length);
     context.set(dimensionId, 0);
     context.set(farmerKey, dimensionId.length);
     context.set(positionBytes, dimensionId.length + farmerKey.length);
@@ -264,9 +263,7 @@ export function generateRangeProof(
   );
 
   if (proofBytes.length > MAX_PROOF_SIZE) {
-    throw new ZKError(
-      `Proof size ${proofBytes.length} exceeds max ${MAX_PROOF_SIZE} bytes`,
-    );
+    throw new ZKError(`Proof size ${proofBytes.length} exceeds max ${MAX_PROOF_SIZE} bytes`);
   }
 
   return {
@@ -322,7 +319,7 @@ export function verifyRangeProof(
 
     // Verify numBits is sufficient for the range
     const range = BigInt(max - min);
-    if (range > 0n && (1n << BigInt(parsed.numBits)) <= range) {
+    if (range > 0n && 1n << BigInt(parsed.numBits) <= range) {
       return false;
     }
     if (parsed.numBits < 1) {
@@ -381,18 +378,28 @@ function serializeRangeProof(
   const result = new Uint8Array(totalSize);
   let offset = 0;
 
-  result[offset] = nameBytes.length; offset += 1;
-  result.set(nameBytes, offset); offset += nameBytes.length;
-  result[offset] = numBits; offset += 1;
-  result.set(valueCommitment.commitment, offset); offset += 32;
-  result.set(farmerKeyHash, offset); offset += 32;
+  result[offset] = nameBytes.length;
+  offset += 1;
+  result.set(nameBytes, offset);
+  offset += nameBytes.length;
+  result[offset] = numBits;
+  offset += 1;
+  result.set(valueCommitment.commitment, offset);
+  offset += 32;
+  result.set(farmerKeyHash, offset);
+  offset += 32;
 
   for (const bp of bitProofs) {
-    result.set(bp.commitment.commitment, offset); offset += 32;
-    result.set(scalarToBytesLE(bp.e0), offset); offset += 32;
-    result.set(scalarToBytesLE(bp.e1), offset); offset += 32;
-    result.set(bp.z0, offset); offset += 32;
-    result.set(bp.z1, offset); offset += 32;
+    result.set(bp.commitment.commitment, offset);
+    offset += 32;
+    result.set(scalarToBytesLE(bp.e0), offset);
+    offset += 32;
+    result.set(scalarToBytesLE(bp.e1), offset);
+    offset += 32;
+    result.set(bp.z0, offset);
+    offset += 32;
+    result.set(bp.z1, offset);
+    offset += 32;
   }
 
   return result;
@@ -401,13 +408,13 @@ function serializeRangeProof(
 function deserializeRangeProof(proofBytes: Uint8Array): SerializedProof {
   let offset = 0;
 
-  const nameLen = proofBytes[offset]; offset += 1;
-  const dimensionName = new TextDecoder().decode(
-    proofBytes.subarray(offset, offset + nameLen),
-  );
+  const nameLen = proofBytes[offset];
+  offset += 1;
+  const dimensionName = new TextDecoder().decode(proofBytes.subarray(offset, offset + nameLen));
   offset += nameLen;
 
-  const numBits = proofBytes[offset]; offset += 1;
+  const numBits = proofBytes[offset];
+  offset += 1;
 
   const valueCommitment: PedersenCommitment = {
     commitment: proofBytes.subarray(offset, offset + 32),

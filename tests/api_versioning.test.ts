@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
-import { v1ToV2RequestTransform, v2ToV1ResponseTransform } from '../src/schemas/transforms/v1-to-v2';
+import {
+  v1ToV2RequestTransform,
+  v2ToV1ResponseTransform,
+} from '../src/schemas/transforms/v1-to-v2';
 import { performance } from 'perf_hooks';
 
 describe('API Versioning Transformations', () => {
@@ -11,7 +14,7 @@ describe('API Versioning Transformations', () => {
         expect(transformed).toHaveProperty('context');
         expect(transformed.context).toEqual(data.metadata);
         expect(transformed).not.toHaveProperty('metadata');
-      })
+      }),
     );
   });
 
@@ -22,7 +25,7 @@ describe('API Versioning Transformations', () => {
         expect(transformed).toHaveProperty('metadata');
         expect(transformed.metadata).toEqual(data.context);
         expect(transformed).not.toHaveProperty('context');
-      })
+      }),
     );
   });
 
@@ -34,7 +37,7 @@ describe('API Versioning Transformations', () => {
         // v2ToV1ResponseTransform maps context to metadata
         const v1Again = v2ToV1ResponseTransform(v2);
         expect(v1Again).toEqual(data);
-      })
+      }),
     );
   });
 

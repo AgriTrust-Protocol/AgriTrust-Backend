@@ -17,7 +17,7 @@ export class AuditConsumer {
   async replayBatch(batchId: string): Promise<any[]> {
     const res = await this.pool.query(
       'SELECT * FROM batch_audit WHERE batch_id = $1 ORDER BY sequence ASC',
-      [batchId]
+      [batchId],
     );
     return res.rows;
   }

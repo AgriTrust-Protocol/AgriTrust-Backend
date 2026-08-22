@@ -42,8 +42,12 @@ describe('ConsumerLagMonitor', () => {
     expect(summary.topicLags).toEqual({ 'batch.certified': 70, 'batch.failed': 0 });
 
     const metrics = await metricsRegistry.metrics();
-    expect(metrics).toContain('kafka_consumer_group_total_lag{service="certificate-service",group_id="certification-writer"} 70');
-    expect(metrics).toContain('kafka_consumer_group_lag{service="certificate-service",group_id="certification-writer",topic="batch.certified",partition="0"} 50');
+    expect(metrics).toContain(
+      'kafka_consumer_group_total_lag{service="certificate-service",group_id="certification-writer"} 70',
+    );
+    expect(metrics).toContain(
+      'kafka_consumer_group_lag{service="certificate-service",group_id="certification-writer",topic="batch.certified",partition="0"} 50',
+    );
   });
 });
 
@@ -65,7 +69,11 @@ describe('ConsumerGroupAutoScaler', () => {
       currentReplicas: 2,
     });
 
-    expect(decision).toMatchObject({ action: 'scale_up', desiredReplicas: 5, reason: 'lag_above_threshold' });
+    expect(decision).toMatchObject({
+      action: 'scale_up',
+      desiredReplicas: 5,
+      reason: 'lag_above_threshold',
+    });
   });
 
   it('scales down gradually when lag is below the low-water mark', () => {
@@ -75,18 +83,31 @@ describe('ConsumerGroupAutoScaler', () => {
       { groupId: policy.groupId, service: policy.service, currentReplicas: 4 },
     );
 
-    expect(decision).toMatchObject({ action: 'scale_down', desiredReplicas: 3, reason: 'lag_below_threshold' });
+    expect(decision).toMatchObject({
+      action: 'scale_down',
+      desiredReplicas: 3,
+      reason: 'lag_below_threshold',
+    });
   });
 
   it('suppresses scaling while cooldown is active', () => {
-    const decision = new ConsumerGroupAutoScaler().evaluate(baseSummary, policy, {
-      groupId: policy.groupId,
-      service: policy.service,
-      currentReplicas: 2,
-      lastScaleAt: new Date('2026-07-17T00:00:30Z'),
-    }, new Date('2026-07-17T00:01:00Z'));
+    const decision = new ConsumerGroupAutoScaler().evaluate(
+      baseSummary,
+      policy,
+      {
+        groupId: policy.groupId,
+        service: policy.service,
+        currentReplicas: 2,
+        lastScaleAt: new Date('2026-07-17T00:00:30Z'),
+      },
+      new Date('2026-07-17T00:01:00Z'),
+    );
 
-    expect(decision).toMatchObject({ action: 'none', desiredReplicas: 2, reason: 'cooldown_active' });
+    expect(decision).toMatchObject({
+      action: 'none',
+      desiredReplicas: 2,
+      reason: 'cooldown_active',
+    });
   });
 
   it('applies actionable decisions through the injected scaler', async () => {

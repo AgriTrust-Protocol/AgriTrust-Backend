@@ -168,9 +168,7 @@ describe('RangeProof Generation', () => {
   it('returns correct dimension ID', () => {
     const { seed } = makeFarmerKeys();
     const proof = generateRangeProof(42, 0, 100, seed, 'nitrate_level');
-    expect(Buffer.from(proof.dimensionId)).toEqual(
-      Buffer.from(DIMENSION_IDS['nitrate_level']),
-    );
+    expect(Buffer.from(proof.dimensionId)).toEqual(Buffer.from(DIMENSION_IDS['nitrate_level']));
   });
 });
 
@@ -362,7 +360,8 @@ describe('BatchProcessor', () => {
 
     // Tamper the nitrate proof
     const nitrateProof = batchProof.proofs.find(
-      (p: RangeProof) => Buffer.from(p.dimensionId).toString('hex') ===
+      (p: RangeProof) =>
+        Buffer.from(p.dimensionId).toString('hex') ===
         Buffer.from(DIMENSION_IDS['nitrate_level']).toString('hex'),
     );
     if (nitrateProof) {

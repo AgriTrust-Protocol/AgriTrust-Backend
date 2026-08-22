@@ -23,13 +23,13 @@ describe('AuditLogger Concurrency', () => {
       args: ['text'] as any,
       returns: 'integer' as any,
       implementation: (str: string) => {
-            let hash = 0;
-            for (let i = 0; i < str.length; i++) {
-                hash = (hash << 5) - hash + str.charCodeAt(i);
-                hash |= 0; // Convert to 32bit integer
-            }
-            return hash;
-        },
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+          hash = (hash << 5) - hash + str.charCodeAt(i);
+          hash |= 0; // Convert to 32bit integer
+        }
+        return hash;
+      },
     });
 
     // Mock pg_advisory_xact_lock
@@ -69,18 +69,20 @@ describe('AuditLogger Concurrency', () => {
     const originalLogTransition = logger.logTransition.bind(logger);
     let lock = Promise.resolve();
     logger.logTransition = async (id, trans) => {
-        const result = lock.then(() => originalLogTransition(id, trans));
-        lock = result.catch(() => {});
-        return result;
+      const result = lock.then(() => originalLogTransition(id, trans));
+      lock = result.catch(() => {});
+      return result;
     };
 
     const workers = [];
     for (let i = 0; i < numWorkers; i++) {
-      workers.push((async () => {
-        for (let j = 0; j < transitionsPerWorker; j++) {
-          await logger.logTransition(batchId, `Worker ${i} Transition ${j}`);
-        }
-      })());
+      workers.push(
+        (async () => {
+          for (let j = 0; j < transitionsPerWorker; j++) {
+            await logger.logTransition(batchId, `Worker ${i} Transition ${j}`);
+          }
+        })(),
+      );
     }
 
     await Promise.all(workers);
@@ -91,7 +93,7 @@ describe('AuditLogger Concurrency', () => {
     expect(logs.length).toBe(totalTransitions);
 
     // Check uniqueness and denseness
-    const sequences = logs.map(l => l.sequence).sort((a, b) => a - b);
+    const sequences = logs.map((l) => l.sequence).sort((a, b) => a - b);
     const expectedSequences = Array.from({ length: totalTransitions }, (_, i) => i + 1);
 
     expect(sequences).toEqual(expectedSequences);

@@ -24,18 +24,25 @@ describe('CacheService', () => {
     const cache = new CacheService(new MemoryRedis(), config);
     const loader = vi.fn(async () => ({ score: 99 }));
 
-    await expect(cache.remember('risk/1', loader, { critical: true })).resolves.toEqual({ score: 99 });
-    await expect(cache.remember('risk/1', loader, { critical: true })).resolves.toEqual({ score: 99 });
+    await expect(cache.remember('risk/1', loader, { critical: true })).resolves.toEqual({
+      score: 99,
+    });
+    await expect(cache.remember('risk/1', loader, { critical: true })).resolves.toEqual({
+      score: 99,
+    });
     expect(loader).toHaveBeenCalledTimes(1);
   });
 
   it('returns loader data when cache operations exceed timeout', async () => {
     const slowClient = {
-      get: () => new Promise<string | null>((resolve) => setTimeout(() => resolve('{"stale":true}'), 50)),
+      get: () =>
+        new Promise<string | null>((resolve) => setTimeout(() => resolve('{"stale":true}'), 50)),
       set: async () => 'OK' as const,
     };
     const cache = new CacheService(slowClient, { ...config, operationTimeoutMs: 1 });
 
-    await expect(cache.remember('slow', async () => ({ fresh: true }))).resolves.toEqual({ fresh: true });
+    await expect(cache.remember('slow', async () => ({ fresh: true }))).resolves.toEqual({
+      fresh: true,
+    });
   });
 });

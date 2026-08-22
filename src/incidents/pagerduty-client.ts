@@ -1,7 +1,15 @@
 import { IncidentSignal, RunbookDefinition } from './types';
 
-export interface PagerDutyTriggerResult { dedupKey: string; incidentKey?: string; status: string; }
-export interface PagerDutyClientOptions { routingKey: string; endpoint?: string; fetchImpl?: typeof fetch; }
+export interface PagerDutyTriggerResult {
+  dedupKey: string;
+  incidentKey?: string;
+  status: string;
+}
+export interface PagerDutyClientOptions {
+  routingKey: string;
+  endpoint?: string;
+  fetchImpl?: typeof fetch;
+}
 
 export class PagerDutyEventsClient {
   private readonly endpoint: string;
@@ -12,7 +20,11 @@ export class PagerDutyEventsClient {
     this.fetchImpl = options.fetchImpl ?? fetch;
   }
 
-  async trigger(signal: IncidentSignal, runbook: RunbookDefinition, dedupKey: string): Promise<PagerDutyTriggerResult> {
+  async trigger(
+    signal: IncidentSignal,
+    runbook: RunbookDefinition,
+    dedupKey: string,
+  ): Promise<PagerDutyTriggerResult> {
     const response = await this.fetchImpl(this.endpoint, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -40,7 +52,15 @@ export class PagerDutyEventsClient {
       }),
     });
     if (!response.ok) throw new Error(`PagerDuty enqueue failed with HTTP ${response.status}`);
-    const body = await response.json() as { dedup_key?: string; incident_key?: string; status?: string };
-    return { dedupKey: body.dedup_key ?? dedupKey, incidentKey: body.incident_key, status: body.status ?? 'success' };
+    const body = (await response.json()) as {
+      dedup_key?: string;
+      incident_key?: string;
+      status?: string;
+    };
+    return {
+      dedupKey: body.dedup_key ?? dedupKey,
+      incidentKey: body.incident_key,
+      status: body.status ?? 'success',
+    };
   }
 }

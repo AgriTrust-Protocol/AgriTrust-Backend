@@ -6,12 +6,7 @@ import { SagaContext, StepOutcome, ok, err } from './saga-step';
  * Extended to conditionally execute variant settlement conditions based on Canary variants.
  */
 
-export type EscrowStatus =
-  | 'none'
-  | 'held'
-  | 'verified'
-  | 'released'
-  | 'reversed';
+export type EscrowStatus = 'none' | 'held' | 'verified' | 'released' | 'reversed';
 
 export interface EscrowRecord {
   escrowId: string;
@@ -48,7 +43,7 @@ export class EscrowEngine {
   }
 
   /** Forward: verify the held funds satisfy settlement preconditions. */
-  async verify(escrowId: string, variantName: string = 'baseline'): Promise<StepOutcome<EscrowRecord>> {
+  async verify(escrowId: string, variantName = 'baseline'): Promise<StepOutcome<EscrowRecord>> {
     const record = this.store.get(escrowId);
     if (!record || record.status !== 'held') {
       return err(`Escrow ${escrowId} is not in a verifiable (held) state`);
@@ -77,7 +72,7 @@ export class EscrowEngine {
   }
 
   /** Forward: release funds to the beneficiary. */
-  async release(escrowId: string, variantName: string = 'baseline'): Promise<StepOutcome<EscrowRecord>> {
+  async release(escrowId: string, variantName = 'baseline'): Promise<StepOutcome<EscrowRecord>> {
     const record = this.store.get(escrowId);
     if (!record || record.status !== 'verified') {
       return err(`Escrow ${escrowId} must be verified before release`);

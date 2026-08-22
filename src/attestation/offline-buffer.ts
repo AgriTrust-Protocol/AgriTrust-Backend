@@ -166,9 +166,7 @@ export class OfflineBuffer {
   /** Return conflict-rejected records (failed with 409 reason). */
   async getConflicts(): Promise<AttestationRecord[]> {
     const all = await this.store.getAll();
-    return all.filter(
-      (r) => r.status === 'failed' && r.nackReason?.startsWith('409'),
-    );
+    return all.filter((r) => r.status === 'failed' && r.nackReason?.startsWith('409'));
   }
 
   /** Move *syncing* records back to *pending* (e.g. connectivity lost mid-flush). */

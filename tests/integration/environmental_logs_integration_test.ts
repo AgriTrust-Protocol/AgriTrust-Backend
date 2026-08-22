@@ -97,7 +97,9 @@ async function main(): Promise<void> {
 
     if ((batch + 1) % 200 === 0 || batch === TOTAL_BATCHES - 1) {
       const pct = (((batch + 1) / TOTAL_BATCHES) * 100).toFixed(1);
-      console.log(`  Progress: ${((batch + 1) * BATCH_SIZE).toLocaleString()} / ${TARGET_ROW_COUNT.toLocaleString()} rows (${pct}%)`);
+      console.log(
+        `  Progress: ${((batch + 1) * BATCH_SIZE).toLocaleString()} / ${TARGET_ROW_COUNT.toLocaleString()} rows (${pct}%)`,
+      );
     }
   }
 

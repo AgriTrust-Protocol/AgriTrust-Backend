@@ -17,7 +17,14 @@ export const telemetryIngestedTotal = new Counter({
 
 interface MqttLikeClient {
   subscribe(topic: string): unknown;
-  on(event: 'message', listener: (topic: string, payload: Buffer, packet?: { properties?: { userProperties?: Record<string, string | string[]> } }) => void): unknown;
+  on(
+    event: 'message',
+    listener: (
+      topic: string,
+      payload: Buffer,
+      packet?: { properties?: { userProperties?: Record<string, string | string[]> } },
+    ) => void,
+  ): unknown;
 }
 
 export interface TelemetryGatewayOptions {
@@ -45,7 +52,11 @@ export class TelemetryGateway {
     });
   }
 
-  async handleMessage(topic: string, payload: Buffer, packet?: { properties?: { userProperties?: Record<string, string | string[]> } }): Promise<TelemetryRecord | undefined> {
+  async handleMessage(
+    topic: string,
+    payload: Buffer,
+    packet?: { properties?: { userProperties?: Record<string, string | string[]> } },
+  ): Promise<TelemetryRecord | undefined> {
     let parsed: Record<string, unknown> | undefined;
     let fromVersion = 'unknown';
     try {
@@ -56,9 +67,20 @@ export class TelemetryGateway {
       if (!registered) throw new Error(`Unknown schema version: ${fromVersion}`);
       const versionedPayload = { ...parsed, schema_version: fromVersion };
       this.options.registry.validate(fromVersion, versionedPayload);
-      const canonical = this.options.migrator.migrate(versionedPayload, fromVersion, CANONICAL_TELEMETRY_VERSION);
-      this.options.registry.validate(CANONICAL_TELEMETRY_VERSION, { schema_version: CANONICAL_TELEMETRY_VERSION, ...canonical });
-      telemetryIngestedTotal.inc({ status: fromVersion === CANONICAL_TELEMETRY_VERSION ? 'ok' : 'migrated', from_version: fromVersion, to_version: CANONICAL_TELEMETRY_VERSION });
+      const canonical = this.options.migrator.migrate(
+        versionedPayload,
+        fromVersion,
+        CANONICAL_TELEMETRY_VERSION,
+      );
+      this.options.registry.validate(CANONICAL_TELEMETRY_VERSION, {
+        schema_version: CANONICAL_TELEMETRY_VERSION,
+        ...canonical,
+      });
+      telemetryIngestedTotal.inc({
+        status: fromVersion === CANONICAL_TELEMETRY_VERSION ? 'ok' : 'migrated',
+        from_version: fromVersion,
+        to_version: CANONICAL_TELEMETRY_VERSION,
+      });
       this.eventBus.emit('telemetry', canonical);
       return canonical;
     } catch (error) {
@@ -68,16 +90,24 @@ export class TelemetryGateway {
         schema_version: fromVersion === 'unknown' ? 'unknown' : fromVersion,
         error: error instanceof Error ? error.message : String(error),
       });
-      telemetryIngestedTotal.inc({ status: 'quarantined', from_version: fromVersion, to_version: CANONICAL_TELEMETRY_VERSION });
+      telemetryIngestedTotal.inc({
+        status: 'quarantined',
+        from_version: fromVersion,
+        to_version: CANONICAL_TELEMETRY_VERSION,
+      });
       return undefined;
     }
   }
 
-  private resolveSchemaVersion(payload: Record<string, unknown>, packet?: { properties?: { userProperties?: Record<string, string | string[]> } }): string {
+  private resolveSchemaVersion(
+    payload: Record<string, unknown>,
+    packet?: { properties?: { userProperties?: Record<string, string | string[]> } },
+  ): string {
     const property = packet?.properties?.userProperties?.['x-schema-version'];
     const version = Array.isArray(property) ? property[0] : property;
     if (typeof version === 'string' && version.length > 0) return version;
-    if (typeof payload.schema_version === 'string' && payload.schema_version.length > 0) return payload.schema_version;
+    if (typeof payload.schema_version === 'string' && payload.schema_version.length > 0)
+      return payload.schema_version;
     return 'unknown';
   }
 

@@ -76,7 +76,7 @@ function addAbs(a: string, b: string): string {
   let carry = 0;
   let result = '';
   for (let i = len - 1; i >= 0; i--) {
-    const sum = (a.charCodeAt(i) - 48) + (b.charCodeAt(i) - 48) + carry;
+    const sum = a.charCodeAt(i) - 48 + (b.charCodeAt(i) - 48) + carry;
     carry = sum >= 10 ? 1 : 0;
     result = String.fromCharCode((sum % 10) + 48) + result;
   }
@@ -98,7 +98,7 @@ function subtractAbs(a: string, b: string): string {
   let borrow = 0;
   let result = '';
   for (let i = len - 1; i >= 0; i--) {
-    let diff = (a.charCodeAt(i) - 48) - (b.charCodeAt(i) - 48) - borrow;
+    let diff = a.charCodeAt(i) - 48 - (b.charCodeAt(i) - 48) - borrow;
     if (diff < 0) {
       diff += 10;
       borrow = 1;
@@ -179,7 +179,7 @@ function multiplyAbsKaratsuba(a: string, b: string): string {
   const z1 = multiplyAbsKaratsuba(addAbs(a0, a1), addAbs(b0, b1));
 
   // middle = z1 - z2 - z0
-  let middle = subtractAbs(z1, addAbs(z2, z0));
+  const middle = subtractAbs(z1, addAbs(z2, z0));
 
   // result = z2 * 10^(2m) + middle * 10^m + z0
   const z2shifted = z2 === '0' ? '0' : z2 + padRight('', 2 * m);
@@ -217,10 +217,7 @@ function divideAbs(dividend: string, divisor: string): { quotient: string; remai
   let quotient = '';
 
   for (let i = 0; i < dividend.length; i++) {
-    remainder = addAbs(
-      remainder === '0' ? '' : remainder,
-      dividend[i],
-    );
+    remainder = addAbs(remainder === '0' ? '' : remainder, dividend[i]);
     if (remainder === '') remainder = dividend[i];
 
     // Find the largest digit d such that d * divisor <= remainder
@@ -359,7 +356,7 @@ function rescale(fp: FixedPoint, newScale: number): FixedPoint {
     // Truncate by integer-dividing by 10^(fp.scale - newScale)
     const factor = '1' + '0'.repeat(fp.scale - newScale);
     const { quotient } = divideAbs(abs, factor);
-    const result = quotient === '0' ? '0' : (negative ? '-' + quotient : quotient);
+    const result = quotient === '0' ? '0' : negative ? '-' + quotient : quotient;
     return { value: result, scale: newScale };
   }
 }
@@ -414,7 +411,7 @@ export function add(a: FixedPoint, b: FixedPoint): FixedPoint {
  */
 export function subtract(a: FixedPoint, b: FixedPoint): FixedPoint {
   const negB: FixedPoint = {
-    value: b.value === '0' ? '0' : (b.value.startsWith('-') ? b.value.slice(1) : '-' + b.value),
+    value: b.value === '0' ? '0' : b.value.startsWith('-') ? b.value.slice(1) : '-' + b.value,
     scale: b.scale,
   };
   return add(a, negB);
@@ -448,7 +445,7 @@ export function multiply(a: FixedPoint, b: FixedPoint): FixedPoint {
   }
 
   const resultNeg = aNeg !== bNeg;
-  const resultValue = productAbs === '0' ? '0' : (resultNeg ? '-' + productAbs : productAbs);
+  const resultValue = productAbs === '0' ? '0' : resultNeg ? '-' + productAbs : productAbs;
 
   return { value: resultValue, scale: productScale };
 }
@@ -513,9 +510,7 @@ export function divide(
   } else {
     // aAbs needs to be divided by 10^(-scaleShift) first (truncate)
     const trimLen = -scaleShift;
-    scaledDividend = aAbs.length > trimLen
-      ? aAbs.slice(0, aAbs.length - trimLen)
-      : '0';
+    scaledDividend = aAbs.length > trimLen ? aAbs.slice(0, aAbs.length - trimLen) : '0';
     if (scaledDividend === '') scaledDividend = '0';
   }
 
@@ -534,9 +529,8 @@ export function divide(
   }
 
   const resultNeg = aNeg !== bNeg;
-  const finalValue = roundedQuotient === '0'
-    ? '0'
-    : (resultNeg ? '-' + roundedQuotient : roundedQuotient);
+  const finalValue =
+    roundedQuotient === '0' ? '0' : resultNeg ? '-' + roundedQuotient : roundedQuotient;
 
   return { value: finalValue, scale: targetScale };
 }
@@ -571,7 +565,7 @@ export function compare(a: FixedPoint, b: FixedPoint): -1 | 0 | 1 {
  * Truncate a FixedPoint to `targetScale` decimal places (floor toward zero).
  * Equivalent to Rust's truncating integer division.
  */
-export function floor(fp: FixedPoint, targetScale: number = 0): FixedPoint {
+export function floor(fp: FixedPoint, targetScale = 0): FixedPoint {
   if (fp.scale <= targetScale) {
     return rescale(fp, targetScale);
   }
@@ -609,7 +603,7 @@ export function roundHalfUp(fp: FixedPoint, targetScale: number): FixedPoint {
     rounded = truncatedClean;
   }
 
-  const resultValue = rounded === '0' ? '0' : (negative ? '-' + rounded : rounded);
+  const resultValue = rounded === '0' ? '0' : negative ? '-' + rounded : rounded;
   return { value: resultValue, scale: targetScale };
 }
 
