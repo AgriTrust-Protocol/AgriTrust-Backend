@@ -21,7 +21,9 @@ try {
     console.log('[config] Hot-reload enabled');
   } catch (err) {
     console.error('[config] Configuration validation failed:', err.message);
-    process.exit(1);
+    if (process.env.NODE_ENV !== 'test') {
+      process.exit(1);
+    }
   }
 }
 
@@ -447,5 +449,9 @@ if (isMtlsEnabled) {
     }
   })();
 } else {
-  app.listen(port, () => console.log('Grant API running'));
+  if (process.env.NODE_ENV !== 'test') {
+    app.listen(port, () => console.log('Grant API running'));
+  }
 }
+
+module.exports = app;
