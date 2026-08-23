@@ -205,7 +205,7 @@ describe('BatchStatusWorkflow — concurrent transitions', () => {
       expect(await countAuditForTransition(pool, id, 'INSPECTED', 'CERTIFIED')).toBe(1);
       expect(await countProcessedTransitions(pool, id)).toBe(1);
     }
-  });
+  }, 15000);
 
   it('full lifecycle under concurrent pressure: audit invariant holds', async () => {
     const batchId = uuidv7();

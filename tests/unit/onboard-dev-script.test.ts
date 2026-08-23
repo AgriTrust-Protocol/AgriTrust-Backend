@@ -8,7 +8,9 @@ const script = readFileSync(scriptPath, 'utf8');
 
 describe('developer onboarding script', () => {
   it('is executable and uses strict shell settings', () => {
-    expect(statSync(scriptPath).mode & 0o111).toBeGreaterThan(0);
+    if (process.platform !== 'win32') {
+      expect(statSync(scriptPath).mode & 0o111).toBeGreaterThan(0);
+    }
     expect(script).toContain('set -euo pipefail');
   });
 
