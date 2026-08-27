@@ -15,6 +15,7 @@
     "migrate": "npx ts-node src/database/migrate.ts",
     "import:parcels": "npx ts-node src/cli/import_parcels.ts",
     "performance:check": "npx ts-node scripts/check-performance-regression.ts",
+    "benchmark:timeseries": "npx ts-node scripts/benchmark-time-series.ts",
     "security:deps": "npx ts-node scripts/dependency-vulnerability-scan.ts",
     "lint": "eslint \"{src,tests,scripts}/**/*.{ts,js}\" index.js",
     "lint:fix": "eslint \"{src,tests,scripts}/**/*.{ts,js}\" index.js --fix",
