@@ -413,6 +413,84 @@ try {
   console.warn(err instanceof Error ? err.message : String(err));
 }
 
+// ─── Distributed Job Scheduler for Farm Operations (Issue #168) ──────────────
+// PostgreSQL-backed scheduler that runs crop, irrigation, fertilizer, and drone
+// jobs across many backend replicas. Claims work via `SELECT ... FOR UPDATE
+// SKIP LOCKED` (30s lease, refreshed every 10s), guards each operation with a
+// circuit breaker (trips after 3 failures in 5 minutes), and supports cron,
+// delayed, and dependency-triggered job types. See src/scheduler and
+// docs/architecture/scheduled-jobs.md.
+try {
+  const { Pool } = require('pg');
+  const { ScheduledJobStore } = require('./dist/src/scheduler/scheduled_job_store');
+  const { Scheduler } = require('./dist/src/scheduler/scheduler');
+  const { nextCronRun } = require('./dist/src/scheduler/cron_parser');
+
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const store = new ScheduledJobStore(pool);
+  const farmScheduler = new Scheduler(store);
+
+  // Register farm-operation executors. External device APIs (pump 5xx errors,
+  // drone control, etc.) are stubbed here; production layers would call the
+  // upstream and any 5xx/failure would trip the per-operation circuit breaker.
+  const farmOperations = ['irrigation', 'fertilizer', 'drone_survey', 'harvest_coordination'];
+  for (const operation of farmOperations) {
+    farmScheduler.register(operation, async (job) => {
+      console.log(`[Scheduler] ${operation} job ${job.job_id} dispatched`, job.payload);
+    });
+  }
+  farmScheduler.onExhausted((job, reason) => {
+    console.warn(`[Scheduler] alert: ${job.job_id} failed with ${reason}`);
+  });
+
+  const scheduledJobStore = store;
+
+  // Admin inspection of the scheduled-job ledger.
+  app.get('/admin/scheduled-jobs', async (req, res) => {
+    try {
+      const jobs = await scheduledJobStore.list();
+      res.json({ jobs });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to list scheduled jobs' });
+    }
+  });
+
+  if (process.env.NODE_ENV !== 'test') {
+    // Seed a couple of default farm-operation schedules on first boot.
+    store
+      .schedule({
+        job_id: 'cron-irrigation-demo',
+        type: 'cron',
+        payload: { operation: 'irrigation' },
+        scheduled_at: nextCronRun('*/30 * * * *', new Date()),
+        cron_expr: '*/30 * * * *',
+        depends_on: null,
+        retry_count: 0,
+      })
+      .catch((err) => console.warn('[Scheduler] failed to seed irrigation cron:', err.message));
+
+    store
+      .schedule({
+        job_id: 'delayed-fertilizer-demo',
+        type: 'delayed',
+        payload: { operation: 'fertilizer' },
+        scheduled_at: new Date(Date.now() + 60 * 60 * 1000),
+        cron_expr: null,
+        depends_on: null,
+        retry_count: 0,
+      })
+      .catch((err) =>
+        console.warn('[Scheduler] failed to seed fertilizer delayed job:', err.message),
+      );
+
+    farmScheduler.start();
+    console.log('Distributed farm job scheduler started.');
+  }
+} catch (err) {
+  console.warn('Distributed farm job scheduler not available. Skipping init.');
+  console.warn(err instanceof Error ? err.message : String(err));
+}
+
 // ─── Configuration Management API ────────────────────────────────────────────
 // Admin endpoints for viewing, reloading, and validating config at runtime.
 // Sensitive values are redacted in responses.
