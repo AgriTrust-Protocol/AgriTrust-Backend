@@ -6,29 +6,30 @@ Node.js Express API server for the AgriTrust Protocol, providing backend service
 * **Trust Fund Management API:** REST endpoints to create, track, and manage agricultural trust funds.
 * **Milestone Verification:** Endpoints to process and verify milestone completion proofs.
 * **Dispute & Yield Integrations:** Integrates dispute resolution workflows and monitors treasury yield aggregation.
+* **Semantic Web & Compliance:** AgriTrust Core OWL ontology, EUDR provenance verification, and W3C Verifiable Credentials.
 
 ## 🛠️ Tech Stack
-* **Language/Framework:** Node.js / Express
-* **Key Dependencies:** `express`, `cors`, `dotenv`
+* **Language/Framework:** Node.js / Express (TypeScript, ES Modules)
+* **Key Dependencies:** `express`, `@stellar/stellar-sdk`, `rdflib`, `n3`, `did-resolver`, `better-sqlite3`, `dotenv`, `cors`, `zod`
 
 ## 📦 Getting Started
 
 ### Prerequisites
 Ensure you have the required toolchains installed:
-* Node.js (v18 or higher recommended)
+* Node.js (v20 LTS or higher recommended)
 * npm (Node Package Manager)
 
 ### Installation & Local Setup
 ```bash
-# Clone the repository (if running manually)
-git clone https://github.com/AgriTrust-Protocol/AgriTrust-Backend
-
-# Install dependencies or build
+# Install dependencies
 npm install
+
+# Start development server
+npm run dev
 
 # Start the application
 npm start
-```
 
-## 🤝 Contributing
-Contributions are highly welcome. Please ensure your commits are cryptographically signed using GPG or SSH keys. For major structural changes, please open an issue first to discuss your proposal.
+# Run tests
+npm test
+```
