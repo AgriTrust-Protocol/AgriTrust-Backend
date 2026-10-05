@@ -1,0 +1,80 @@
+@prefix : <https://agritrust.example.org/ontology#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix geo: <http://www.w3.org/2003/01/geo/wgs84_pos#> .
+@prefix odrl: <http://www.w3.org/ns/odrl/2/> .
+@prefix cred: <https://www.w3.org/2018/credentials#> .
+
+# Ontology Declaration
+:AgriTrustCoreOntology a owl:Ontology ;
+    rdfs:label "AgriTrust Core Ontology" ;
+    rdfs:comment "Core ontology for AgriTrust agricultural traceability and compliance" ;
+    owl:versionInfo "1.0.0" .
+
+# Classes
+:Asset a owl:Class ;
+    rdfs:label "Asset" ;
+    rdfs:comment "An agricultural asset or resource" .
+
+:Token a owl:Class ;
+    rdfs:label "Token" ;
+    rdfs:comment "Digital token representing agricultural value" ;
+    rdfs:subClassOf :Asset .
+
+:Process a owl:Class ;
+    rdfs:label "Process" ;
+    rdfs:comment "Agricultural process in the supply chain" .
+
+:DataContract a owl:Class ;
+    rdfs:label "DataContract" ;
+    rdfs:comment "Data sharing contract" .
+
+:Certificate a owl:Class ;
+    rdfs:label "Certificate" ;
+    rdfs:comment "Compliance or quality certificate" ;
+    rdfs:subClassOf cred:VerifiableCredential .
+
+:ODRLPolicy a owl:Class ;
+    rdfs:label "ODRLPolicy" ;
+    rdfs:comment "ODRL policy for data sharing" .
+
+:Observation a owl:Class ;
+    rdfs:label "Observation" ;
+    rdfs:comment "Geospatial or environmental observation" .
+
+:EfficiencyMetric a owl:Class ;
+    rdfs:label "EfficiencyMetric" ;
+    rdfs:comment "Metric measuring agricultural efficiency" .
+
+# Properties
+:hasOriginator a owl:ObjectProperty ;
+    rdfs:label "hasOriginator" ;
+    rdfs:comment "Relates entity to its originator" ;
+    rdfs:domain owl:Thing ;
+    rdfs:range owl:Thing .
+
+:derivedFromProcess a owl:ObjectProperty ;
+    rdfs:label "derivedFromProcess" ;
+    rdfs:comment "Indicates derivation from a process" ;
+    rdfs:domain :Asset ;
+    rdfs:range :Process .
+
+:satisfiesPolicy a owl:ObjectProperty ;
+    rdfs:label "satisfiesPolicy" ;
+    rdfs:comment "Indicates compliance with a policy" ;
+    rdfs:domain :Asset ;
+    rdfs:range :ODRLPolicy .
+
+:measuredMetric a owl:ObjectProperty ;
+    rdfs:label "measuredMetric" ;
+    rdfs:comment "Links to measured efficiency metric" ;
+    rdfs:domain :Observation ;
+    rdfs:range :EfficiencyMetric .
+
+:geoPolygon a owl:DatatypeProperty ;
+    rdfs:label "geoPolygon" ;
+    rdfs:comment "Geographic polygon coordinates" ;
+    rdfs:domain :Observation ;
+    rdfs:range xsd:string .
